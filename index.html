@@ -1350,6 +1350,16 @@ function applySelectedLevel() {
 
   hideTooltip();
 
+  /*
+   * Remember what the user is currently looking at.
+   */
+  const previousFocusId =
+    currentFocusId;
+
+
+  /*
+   * Build the graph for the newly selected JLPT range.
+   */
   graphData =
     buildFilteredGraph(
       masterGraphData,
@@ -1358,13 +1368,70 @@ function applySelectedLevel() {
 
   indexGraph();
 
-  currentFocusId = null;
-  visibleNodeIds = null;
-
+  /*
+   * Navigation history belongs to the previous JLPT-filtered
+   * graph, so clear it.
+   */
   viewHistory = [];
 
   updateBackButton();
   syncLevelButtons();
+
+
+  /*
+   * If we were focused on a node and that node still exists
+   * in the newly filtered graph, stay focused on it.
+   *
+   * focusNode() will recalculate all prerequisite ancestors
+   * and dependent descendants using the new graph.
+   *
+   * Example:
+   *
+   * N3 view:
+   *
+   *     prerequisites -> 海 -> N3 dependents
+   *
+   * switch to N1:
+   *
+   *     prerequisites -> 海 -> N3/N2/N1 dependents
+   *
+   * without returning to Overview.
+   */
+  if (
+    previousFocusId
+    &&
+    nodesById.has(
+      previousFocusId
+    )
+  ) {
+    currentFocusId =
+      previousFocusId;
+
+    visibleNodeIds =
+      null;
+
+    focusNode(
+      previousFocusId,
+      {
+        recordHistory: false
+      }
+    );
+
+    return;
+  }
+
+
+  /*
+   * If the previously focused node no longer exists in the
+   * selected JLPT graph, fall back to Overview.
+   *
+   * For example, this can happen when going from N1 down to N5.
+   */
+  currentFocusId =
+    null;
+
+  visibleNodeIds =
+    null;
 
   renderStats();
   renderGraph();
