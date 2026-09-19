@@ -1,3 +1,9 @@
+> **Work in progress**
+>
+> This project is an early prototype and still has many known limitations, incomplete decompositions, data-quality edge cases, and visualization issues. The generated learning graph should not yet be treated as a definitive or pedagogically validated kanji decomposition system.
+>
+> Expect the data model, decomposition rules, graph structure, and UI to change substantially as the project evolves.
+
 # Kanji Learning Graph
 
 Kanji Learning Graph is an interactive visualization of Japanese kanji organized as a prerequisite graph.
