@@ -1,0 +1,2280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Kanji Learning Graph</title>
+
+  <style>
+    :root {
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      color: #222;
+      background: #f6f7f9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    #tooltip {
+      position: fixed;
+      z-index: 1000;
+    
+      max-width: 280px;
+      padding: 7px 10px;
+    
+      border-radius: 6px;
+    
+      background: rgba(25, 25, 25, 0.94);
+      color: white;
+    
+      font-size: 13px;
+      line-height: 1.35;
+    
+      pointer-events: none;
+    
+      opacity: 0;
+      transform: translate(10px, 10px);
+    
+      transition: opacity 80ms;
+    }
+    
+    #tooltip.visible {
+      opacity: 1;
+    }
+    
+    .tooltip-kanji {
+      font-size: 18px;
+      font-weight: 600;
+      margin-right: 5px;
+    }
+    
+    .tooltip-level {
+      opacity: 0.7;
+      font-size: 11px;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      height: 100vh;
+    }
+
+    /* ------------------------------------------------------------
+       Main
+       ------------------------------------------------------------ */
+
+    #main {
+      min-width: 0;
+      min-height: 0;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    #toolbar {
+      flex: 0 0 auto;
+      min-height: 58px;
+
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      padding: 10px 16px;
+
+      background: white;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #toolbar h1 {
+      margin: 0 12px 0 0;
+
+      font-size: 17px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    #jlpt-level,
+    #search,
+    button {
+      height: 34px;
+
+      border: 1px solid #bbb;
+      border-radius: 6px;
+
+      background: white;
+
+      font: inherit;
+      font-size: 14px;
+    }
+
+    #jlpt-level {
+      padding: 0 9px;
+      cursor: pointer;
+    }
+
+    #search {
+      width: 230px;
+      padding: 0 10px;
+    }
+
+    button {
+      padding: 0 13px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #f1f2f4;
+    }
+
+    #toolbar-spacer {
+      flex: 1 1 auto;
+    }
+
+    #status {
+      font-size: 12px;
+      color: #777;
+      white-space: nowrap;
+    }
+
+    #graph-container {
+      flex: 1 1 auto;
+      min-height: 0;
+
+      overflow: auto;
+
+      background: #fafafa;
+    }
+
+    #graph {
+      display: block;
+    }
+
+    /* ------------------------------------------------------------
+       Sidebar
+       ------------------------------------------------------------ */
+
+    #sidebar {
+      min-height: 0;
+      overflow-y: auto;
+
+      padding: 18px;
+
+      background: white;
+      border-left: 1px solid #ddd;
+    }
+
+    #sidebar h2 {
+      margin: 0 0 14px;
+      font-size: 17px;
+    }
+
+    #sidebar h3 {
+      margin: 24px 0 10px;
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 12px;
+
+      font-size: 13px;
+    }
+
+    .stats .value {
+      max-width: 150px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .hint {
+      margin: 0;
+
+      font-size: 13px;
+      line-height: 1.5;
+      color: #666;
+    }
+
+    .legend {
+      display: grid;
+      gap: 9px;
+
+      font-size: 13px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .legend-box {
+      flex: 0 0 auto;
+
+      width: 30px;
+      height: 21px;
+
+      border: 1.5px solid #777;
+      border-radius: 5px;
+
+      background: white;
+    }
+
+    .legend-box.target {
+      background: #e8f1ff;
+      border-color: #3973b9;
+    }
+
+    .legend-box.incomplete {
+      border-style: dashed;
+    }
+
+    .legend-box.component-id {
+      background: #f1eef8;
+    }
+
+    #details {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .detail-kanji {
+      margin-bottom: 10px;
+
+      font-family:
+        "Noto Sans CJK JP",
+        "Noto Sans JP",
+        "Yu Gothic",
+        sans-serif;
+
+      font-size: 72px;
+      line-height: 1.1;
+    }
+
+    .detail-kanji.component-id {
+      font-family: monospace;
+      font-size: 25px;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-title {
+      margin-top: 15px;
+
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+
+      margin-top: 5px;
+    }
+
+    .chip {
+      display: inline-block;
+
+      padding: 2px 7px;
+
+      border-radius: 999px;
+
+      background: #eee;
+
+      font-size: 12px;
+    }
+
+    .chip.clickable {
+      cursor: pointer;
+    }
+
+    .chip.clickable:hover {
+      background: #ddd;
+    }
+
+    .warning {
+      margin-top: 12px;
+      padding: 9px;
+
+      border-radius: 5px;
+
+      background: #fff4df;
+
+      font-size: 12px;
+    }
+
+    .subtle {
+      color: #777;
+    }
+
+    /* ------------------------------------------------------------
+       SVG
+       ------------------------------------------------------------ */
+
+    .level-background {
+      fill: #fff;
+      stroke: #eee;
+    }
+
+    .level-title {
+      font-size: 14px;
+      font-weight: 600;
+      fill: #555;
+    }
+
+    .edge {
+      fill: none;
+
+      stroke: #c8ccd1;
+      stroke-width: 1.3;
+
+      opacity: 0.72;
+    }
+
+    .edge.active {
+      stroke: #4077b5;
+      stroke-width: 2;
+      opacity: 1;
+    }
+
+    .node {
+      cursor: pointer;
+    }
+
+    .node rect {
+      fill: white;
+
+      stroke: #777;
+      stroke-width: 1.3;
+
+      rx: 7;
+      ry: 7;
+    }
+
+    .node:hover rect {
+      stroke: #111;
+      stroke-width: 2;
+    }
+
+    .node.target rect {
+      fill: #e8f1ff;
+
+      stroke: #3973b9;
+      stroke-width: 1.6;
+    }
+
+    .node.incomplete rect {
+      stroke-dasharray: 5 3;
+    }
+
+    .node.component-id rect {
+      fill: #f1eef8;
+    }
+
+    .node.selected rect {
+      stroke: #111;
+      stroke-width: 3;
+      stroke-dasharray: none;
+    }
+
+    .node.related rect {
+      stroke: #4077b5;
+      stroke-width: 2;
+    }
+
+    .kanji {
+      font-family:
+        "Noto Sans CJK JP",
+        "Noto Sans JP",
+        "Yu Gothic",
+        sans-serif;
+
+      font-size: 25px;
+
+      text-anchor: middle;
+      dominant-baseline: middle;
+
+      fill: #111;
+
+      pointer-events: none;
+    }
+
+    .node.component-id .kanji {
+      font-family: monospace;
+      font-size: 10px;
+    }
+
+    .jlpt-label {
+      font-size: 8px;
+      font-weight: 700;
+
+      fill: #3973b9;
+
+      pointer-events: none;
+    }
+
+    .variant-label {
+      font-size: 8px;
+
+      fill: #777;
+
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <main id="main">
+
+    <div id="toolbar">
+
+      <h1>Kanji Learning Graph</h1>
+
+      <select id="jlpt-level">
+        <option value="N5">Through N5</option>
+        <option value="N4">Through N4</option>
+        <option value="N3">Through N3</option>
+        <option value="N2">Through N2</option>
+        <option value="N1">Through N1</option>
+      </select>
+
+      <input
+        id="search"
+        placeholder="Kanji, component, meaning…"
+        autocomplete="off"
+      >
+
+      <button id="search-button">
+        Find
+      </button>
+
+      <button id="overview-button">
+        Overview
+      </button>
+
+      <div id="toolbar-spacer"></div>
+
+      <div id="status"></div>
+
+    </div>
+
+    <div id="graph-container">
+      <svg id="graph"></svg>
+    </div>
+
+  </main>
+
+  <aside id="sidebar">
+
+    <h2>Graph</h2>
+
+    <div
+      id="stats"
+      class="stats"
+    ></div>
+
+    <h3>Legend</h3>
+
+    <div class="legend">
+
+      <div class="legend-row">
+        <div class="legend-box target"></div>
+        <span>JLPT target</span>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-box"></div>
+        <span>Prerequisite component</span>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-box incomplete"></div>
+        <span>
+          Atomic because decomposition is incomplete
+        </span>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-box component-id"></div>
+        <span>
+          External component identifier
+        </span>
+      </div>
+
+    </div>
+
+    <h3>Selected node</h3>
+
+    <div id="details">
+      <p class="hint">
+        Click or search for a kanji to focus on its complete
+        prerequisite and dependent graph.
+      </p>
+    </div>
+
+  </aside>
+
+</div>
+
+
+<script>
+"use strict";
+
+
+/* ================================================================
+   Configuration
+   ================================================================ */
+
+const SVG_NS =
+  "http://www.w3.org/2000/svg";
+
+const NODE_WIDTH = 92;
+const NODE_HEIGHT = 44;
+
+const COLUMN_WIDTH = 230;
+const COLUMN_PADDING = 45;
+
+const ROW_HEIGHT = 58;
+
+const TOP_PADDING = 70;
+const BOTTOM_PADDING = 40;
+
+
+/* ================================================================
+   State
+   ================================================================ */
+
+let graphData = null;
+
+let nodesById = new Map();
+
+let incoming = new Map();
+let outgoing = new Map();
+
+let nodeElements = new Map();
+let edgeElements = [];
+
+let nodePositions = new Map();
+
+let currentFocusId = null;
+let visibleNodeIds = null;
+
+
+/* ================================================================
+   Helpers
+   ================================================================ */
+
+function svgElement(
+  name,
+  attributes = {}
+) {
+  const element =
+    document.createElementNS(
+      SVG_NS,
+      name
+    );
+
+  for (
+    const [key, value]
+    of Object.entries(attributes)
+  ) {
+    element.setAttribute(
+      key,
+      value
+    );
+  }
+
+  return element;
+}
+
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+
+function setStatus(text) {
+  document
+    .getElementById("status")
+    .textContent = text;
+}
+
+
+/* ================================================================
+   Loading
+   ================================================================ */
+
+async function loadGraph() {
+  const selectedLevel =
+    document
+      .getElementById("jlpt-level")
+      .value;
+
+  setStatus("Loading…");
+
+  const response = await fetch(
+    `static-data/graph-${selectedLevel.toLowerCase()}.json`
+  );
+
+  if (!response.ok) {
+    let message =
+      `Graph API returned ${response.status}`;
+
+    try {
+      const data =
+        await response.json();
+
+      if (data.error) {
+        message = data.error;
+      }
+    }
+    catch {
+      // Ignore malformed error responses.
+    }
+
+    throw new Error(message);
+  }
+
+  graphData =
+    await response.json();
+
+  indexGraph();
+
+  currentFocusId = null;
+  visibleNodeIds = null;
+
+  renderStats();
+  renderGraph();
+
+  renderEmptyDetails();
+
+  setStatus(
+    `${graphData.stats.node_count} nodes`
+  );
+}
+
+
+function indexGraph() {
+  nodesById = new Map(
+    graphData.nodes.map(
+      node => [
+        node.id,
+        node
+      ]
+    )
+  );
+
+  incoming = new Map();
+  outgoing = new Map();
+
+  for (const node of graphData.nodes) {
+    incoming.set(
+      node.id,
+      []
+    );
+
+    outgoing.set(
+      node.id,
+      []
+    );
+  }
+
+  for (const edge of graphData.edges) {
+    incoming
+      .get(edge.target)
+      ?.push(edge.source);
+
+    outgoing
+      .get(edge.source)
+      ?.push(edge.target);
+  }
+}
+
+
+/* ================================================================
+   Statistics
+   ================================================================ */
+
+function renderStats() {
+  if (!graphData) {
+    return;
+  }
+
+  const stats =
+    graphData.stats;
+
+  const selection =
+    graphData.selection;
+
+  const visibleCount =
+    visibleNodeIds
+      ? visibleNodeIds.size
+      : graphData.nodes.length;
+
+  const rows = [
+    [
+      "View",
+      currentFocusId
+        ? `Focus: ${currentFocusId}`
+        : "Overview"
+    ],
+    [
+      "Showing through",
+      selection.max_jlpt_level
+    ],
+    [
+      "Visible nodes",
+      visibleCount
+    ],
+    [
+      "JLPT targets",
+      stats.target_count
+    ],
+    [
+      "Total graph nodes",
+      stats.node_count
+    ],
+    [
+      "Dependencies",
+      stats.edge_count
+    ],
+    [
+      "Maximum level",
+      stats.max_level
+    ],
+    [
+      "Atomic leaves",
+      stats.leaf_count
+    ],
+    [
+      "Incomplete",
+      stats.incomplete_decomposition_count
+    ],
+    [
+      "Missing SVG",
+      stats.missing_kanjivg_count
+    ]
+  ];
+
+  const container =
+    document.getElementById(
+      "stats"
+    );
+
+  container.innerHTML =
+    rows
+      .map(
+        ([label, value]) => `
+          <div>
+            ${escapeHtml(label)}
+          </div>
+
+          <div class="value">
+            ${escapeHtml(value)}
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+function showTooltip(node, event) {
+  const tooltip =
+    document.getElementById("tooltip");
+
+  const meanings =
+    node.jlpt?.meanings ?? [];
+
+  const meaningText =
+    meanings.length
+      ? meanings.join(", ")
+      : "No meaning metadata";
+
+  tooltip.innerHTML = `
+    <div>
+      <span class="tooltip-kanji">
+        ${escapeHtml(node.id)}
+      </span>
+
+      ${
+        node.jlpt_level
+          ? `<span class="tooltip-level">
+               ${escapeHtml(node.jlpt_level)}
+             </span>`
+          : ""
+      }
+    </div>
+
+    <div>
+      ${escapeHtml(meaningText)}
+    </div>
+  `;
+
+  moveTooltip(event);
+
+  tooltip.classList.add(
+    "visible"
+  );
+}
+
+
+function moveTooltip(event) {
+  const tooltip =
+    document.getElementById("tooltip");
+
+  const padding = 14;
+
+  let x =
+    event.clientX + 12;
+
+  let y =
+    event.clientY + 12;
+
+  /*
+   * Keep tooltip inside the viewport.
+   */
+  const rect =
+    tooltip.getBoundingClientRect();
+
+  if (
+    x + rect.width + padding
+    > window.innerWidth
+  ) {
+    x =
+      event.clientX
+      - rect.width
+      - 12;
+  }
+
+  if (
+    y + rect.height + padding
+    > window.innerHeight
+  ) {
+    y =
+      event.clientY
+      - rect.height
+      - 12;
+  }
+
+  tooltip.style.left =
+    `${x}px`;
+
+  tooltip.style.top =
+    `${y}px`;
+}
+
+
+function hideTooltip() {
+  document
+    .getElementById("tooltip")
+    .classList.remove("visible");
+}
+
+/* ================================================================
+   Layout
+   ================================================================ */
+
+function averagePrerequisitePosition(
+  node,
+  positions
+) {
+  const prerequisites =
+    incoming.get(node.id) ?? [];
+
+  const values =
+    prerequisites
+      .map(id =>
+        positions.get(id)
+      )
+      .filter(value =>
+        value !== undefined
+      );
+
+  if (values.length === 0) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return (
+    values.reduce(
+      (sum, value) =>
+        sum + value,
+      0
+    )
+    / values.length
+  );
+}
+
+
+function orderLevels(
+  levels,
+  maxLevel
+) {
+  /*
+   * Start from stable lexical order.
+   */
+  for (
+    const nodes
+    of levels.values()
+  ) {
+    nodes.sort(
+      (a, b) =>
+        a.id.localeCompare(
+          b.id,
+          "ja"
+        )
+    );
+  }
+
+  /*
+   * A few barycentric passes reduce
+   * crossings without needing D3.
+   */
+  for (
+    let iteration = 0;
+    iteration < 5;
+    iteration++
+  ) {
+
+    for (
+      let level = 1;
+      level <= maxLevel;
+      level++
+    ) {
+
+      const previousPositions =
+        new Map();
+
+      for (
+        const [otherLevel, nodes]
+        of levels
+      ) {
+        if (
+          otherLevel >= level
+        ) {
+          continue;
+        }
+
+        nodes.forEach(
+          (node, index) => {
+            previousPositions.set(
+              node.id,
+              index * ROW_HEIGHT
+            );
+          }
+        );
+      }
+
+      levels
+        .get(level)
+        .sort(
+          (a, b) => {
+            const ay =
+              averagePrerequisitePosition(
+                a,
+                previousPositions
+              );
+
+            const by =
+              averagePrerequisitePosition(
+                b,
+                previousPositions
+              );
+
+            if (ay !== by) {
+              return ay - by;
+            }
+
+            return a.id.localeCompare(
+              b.id,
+              "ja"
+            );
+          }
+        );
+    }
+  }
+}
+
+
+/* ================================================================
+   Graph rendering
+   ================================================================ */
+
+function renderGraph(
+  visibleIds = visibleNodeIds
+) {
+  const svg =
+    document.getElementById(
+      "graph"
+    );
+
+  svg.innerHTML = "";
+
+  nodeElements.clear();
+  edgeElements = [];
+  nodePositions.clear();
+
+  const visibleNodes =
+    graphData.nodes.filter(
+      node =>
+        !visibleIds
+        || visibleIds.has(node.id)
+    );
+
+  if (
+    visibleNodes.length === 0
+  ) {
+    return;
+  }
+
+  const maxLevel =
+    Math.max(
+      ...visibleNodes.map(
+        node => node.level
+      )
+    );
+
+  const levels =
+    new Map();
+
+  for (
+    let level = 0;
+    level <= maxLevel;
+    level++
+  ) {
+    levels.set(
+      level,
+      []
+    );
+  }
+
+  for (
+    const node
+    of visibleNodes
+  ) {
+    levels
+      .get(node.level)
+      .push(node);
+  }
+
+  orderLevels(
+    levels,
+    maxLevel
+  );
+
+  const maximumNodes =
+    Math.max(
+      1,
+      ...[...levels.values()]
+        .map(
+          nodes => nodes.length
+        )
+    );
+
+  const graphHeight =
+    TOP_PADDING
+    + maximumNodes * ROW_HEIGHT
+    + BOTTOM_PADDING;
+
+  const graphWidth =
+    COLUMN_PADDING * 2
+    + (maxLevel + 1)
+      * COLUMN_WIDTH;
+
+  svg.setAttribute(
+    "width",
+    graphWidth
+  );
+
+  svg.setAttribute(
+    "height",
+    graphHeight
+  );
+
+  svg.setAttribute(
+    "viewBox",
+    `0 0 ${graphWidth} ${graphHeight}`
+  );
+
+  /*
+   * Calculate final positions.
+   */
+  for (
+    let level = 0;
+    level <= maxLevel;
+    level++
+  ) {
+    const nodes =
+      levels.get(level);
+
+    const columnHeight =
+      nodes.length
+      * ROW_HEIGHT;
+
+    const availableHeight =
+      maximumNodes
+      * ROW_HEIGHT;
+
+    const offset =
+      (
+        availableHeight
+        - columnHeight
+      ) / 2;
+
+    nodes.forEach(
+      (node, index) => {
+        const x =
+          COLUMN_PADDING
+          + level * COLUMN_WIDTH
+          + COLUMN_WIDTH / 2;
+
+        const y =
+          TOP_PADDING
+          + offset
+          + index * ROW_HEIGHT
+          + ROW_HEIGHT / 2;
+
+        nodePositions.set(
+          node.id,
+          {x, y}
+        );
+      }
+    );
+  }
+
+  renderColumnBackgrounds(
+    svg,
+    levels,
+    graphHeight,
+    maxLevel
+  );
+
+  /*
+   * Edges first so nodes sit above them.
+   */
+  for (
+    const edge
+    of graphData.edges
+  ) {
+
+    if (
+      visibleIds
+      && (
+        !visibleIds.has(
+          edge.source
+        )
+        ||
+        !visibleIds.has(
+          edge.target
+        )
+      )
+    ) {
+      continue;
+    }
+
+    const source =
+      nodePositions.get(
+        edge.source
+      );
+
+    const target =
+      nodePositions.get(
+        edge.target
+      );
+
+    if (
+      !source
+      || !target
+    ) {
+      continue;
+    }
+
+    const startX =
+      source.x
+      + NODE_WIDTH / 2;
+
+    const startY =
+      source.y;
+
+    const endX =
+      target.x
+      - NODE_WIDTH / 2;
+
+    const endY =
+      target.y;
+
+    const distance =
+      endX - startX;
+
+    const curve =
+      Math.max(
+        40,
+        distance * 0.45
+      );
+
+    const path =
+      svgElement(
+        "path",
+        {
+          class:
+            currentFocusId
+              ? "edge active"
+              : "edge",
+
+          d: [
+            `M ${startX} ${startY}`,
+
+            `C ${
+              startX + curve
+            } ${startY},`,
+
+            `${
+              endX - curve
+            } ${endY},`,
+
+            `${endX} ${endY}`
+          ].join(" ")
+        }
+      );
+
+    path.dataset.source =
+      edge.source;
+
+    path.dataset.target =
+      edge.target;
+
+    edgeElements.push({
+      edge,
+      element: path
+    });
+
+    svg.appendChild(path);
+  }
+
+  /*
+   * Nodes.
+   */
+  for (
+    let level = 0;
+    level <= maxLevel;
+    level++
+  ) {
+    for (
+      const node
+      of levels.get(level)
+    ) {
+      const position =
+        nodePositions.get(
+          node.id
+        );
+
+      const element =
+        renderNode(
+          node,
+          position
+        );
+
+      nodeElements.set(
+        node.id,
+        element
+      );
+
+      svg.appendChild(
+        element
+      );
+    }
+  }
+
+  /*
+   * Focus styling.
+   */
+  if (
+    currentFocusId
+    && nodeElements.has(
+      currentFocusId
+    )
+  ) {
+    for (
+      const [id, element]
+      of nodeElements
+    ) {
+      if (
+        id === currentFocusId
+      ) {
+        element.classList.add(
+          "selected"
+        );
+      }
+      else {
+        element.classList.add(
+          "related"
+        );
+      }
+    }
+  }
+}
+
+
+function renderColumnBackgrounds(
+  svg,
+  levels,
+  graphHeight,
+  maxLevel
+) {
+  for (
+    let level = 0;
+    level <= maxLevel;
+    level++
+  ) {
+    const x =
+      COLUMN_PADDING
+      + level * COLUMN_WIDTH;
+
+    const background =
+      svgElement(
+        "rect",
+        {
+          class:
+            "level-background",
+
+          x,
+          y: 12,
+
+          width:
+            COLUMN_WIDTH - 18,
+
+          height:
+            graphHeight - 24,
+
+          rx: 10
+        }
+      );
+
+    svg.appendChild(
+      background
+    );
+
+    const title =
+      svgElement(
+        "text",
+        {
+          class:
+            "level-title",
+
+          x: x + 14,
+          y: 39
+        }
+      );
+
+    const count =
+      levels
+        .get(level)
+        .length;
+
+    title.textContent =
+      `Level ${level} · ${count}`;
+
+    svg.appendChild(
+      title
+    );
+  }
+}
+
+
+function renderNode(
+  node,
+  position
+) {
+  const classes = [
+    "node"
+  ];
+
+  if (node.target) {
+    classes.push(
+      "target"
+    );
+  }
+
+  if (
+    node.leaf_reason
+    ===
+    "incomplete_decomposition"
+  ) {
+    classes.push(
+      "incomplete"
+    );
+  }
+
+  if (
+    node.type
+    ===
+    "component_id"
+  ) {
+    classes.push(
+      "component-id"
+    );
+  }
+
+  const group =
+    svgElement(
+      "g",
+      {
+        class:
+          classes.join(" "),
+
+        transform:
+          `translate(${
+            position.x
+          }, ${
+            position.y
+          })`
+      }
+    );
+
+  group.dataset.id =
+    node.id;
+
+  const rect =
+    svgElement(
+      "rect",
+      {
+        x:
+          -NODE_WIDTH / 2,
+
+        y:
+          -NODE_HEIGHT / 2,
+
+        width:
+          NODE_WIDTH,
+
+        height:
+          NODE_HEIGHT
+      }
+    );
+
+  group.appendChild(
+    rect
+  );
+
+  const text =
+    svgElement(
+      "text",
+      {
+        class:
+          "kanji",
+
+        x: 0,
+        y: 1
+      }
+    );
+
+  text.textContent =
+    node.id;
+
+  group.appendChild(
+    text
+  );
+
+  if (
+    node.target
+    && node.jlpt_level
+  ) {
+    const jlpt =
+      svgElement(
+        "text",
+        {
+          class:
+            "jlpt-label",
+
+          x:
+            -NODE_WIDTH / 2
+            + 6,
+
+          y:
+            -NODE_HEIGHT / 2
+            + 10
+        }
+      );
+
+    jlpt.textContent =
+      node.jlpt_level;
+
+    group.appendChild(
+      jlpt
+    );
+  }
+
+  if (
+    node.variant_of
+    ?.length
+  ) {
+    const variant =
+      svgElement(
+        "text",
+        {
+          class:
+            "variant-label",
+
+          x:
+            NODE_WIDTH / 2
+            - 5,
+
+          y:
+            NODE_HEIGHT / 2
+            - 5,
+
+          "text-anchor":
+            "end"
+        }
+      );
+
+    variant.textContent =
+      `← ${
+        node.variant_of.join(",")
+      }`;
+
+    group.appendChild(
+      variant
+    );
+  }
+
+  group.addEventListener(
+    "mouseenter",
+    event => {
+      showTooltip(
+        node,
+        event
+      );
+    }
+  );
+  
+  group.addEventListener(
+    "mousemove",
+    event => {
+      moveTooltip(event);
+    }
+  );
+  
+  group.addEventListener(
+    "mouseleave",
+    hideTooltip
+  );
+
+  group.addEventListener(
+    "click",
+    () => {
+      focusNode(
+        node.id
+      );
+    }
+  );
+
+  return group;
+}
+
+
+/* ================================================================
+   Graph traversal
+   ================================================================ */
+
+function traverse(
+  start,
+  adjacency
+) {
+  const visited =
+    new Set();
+
+  const queue = [
+    start
+  ];
+
+  while (
+    queue.length
+  ) {
+    const current =
+      queue.shift();
+
+    for (
+      const next
+      of adjacency.get(
+        current
+      ) ?? []
+    ) {
+      if (
+        visited.has(next)
+      ) {
+        continue;
+      }
+
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+
+  return visited;
+}
+
+
+/* ================================================================
+   Focus / Overview
+   ================================================================ */
+
+function focusNode(id) {
+  const node =
+    nodesById.get(id);
+
+  if (!node) {
+    return;
+  }
+
+  const prerequisites =
+    traverse(
+      id,
+      incoming
+    );
+
+  const dependents =
+    traverse(
+      id,
+      outgoing
+    );
+
+  visibleNodeIds =
+    new Set([
+      id,
+      ...prerequisites,
+      ...dependents
+    ]);
+
+  currentFocusId =
+    id;
+
+  renderGraph(
+    visibleNodeIds
+  );
+
+  renderStats();
+
+  renderDetails(
+    node,
+    prerequisites,
+    dependents
+  );
+
+  setStatus(
+    `${visibleNodeIds.size} related nodes`
+  );
+
+  scrollNodeIntoView(
+    id
+  );
+}
+
+
+function showOverview() {
+  currentFocusId =
+    null;
+
+  visibleNodeIds =
+    null;
+
+  renderGraph();
+  renderStats();
+  renderEmptyDetails();
+
+  setStatus(
+    `${graphData.stats.node_count} nodes`
+  );
+
+  /*
+   * Return to top-left when switching
+   * back to the huge overview.
+   */
+  document
+    .getElementById(
+      "graph-container"
+    )
+    .scrollTo({
+      left: 0,
+      top: 0,
+      behavior: "smooth"
+    });
+}
+
+
+/* ================================================================
+   Details
+   ================================================================ */
+
+function renderEmptyDetails() {
+  document
+    .getElementById(
+      "details"
+    )
+    .innerHTML = `
+      <p class="hint">
+        Overview mode shows the entire selected JLPT graph.
+        Click or search for a kanji to enter focus mode.
+      </p>
+    `;
+}
+
+
+function renderDetails(
+  node,
+  prerequisites,
+  dependents
+) {
+  const jlpt =
+    node.jlpt;
+
+  const meanings =
+    jlpt?.meanings ?? [];
+
+  const onyomi =
+    jlpt?.onyomi ?? [];
+
+  const kunyomi =
+    jlpt?.kunyomi ?? [];
+
+  const raw =
+    node.raw_prerequisites
+    ?? [];
+
+  const actual =
+    node.prerequisites
+    ?? [];
+
+  const displayClass =
+    node.type
+    === "component_id"
+      ? "detail-kanji component-id"
+      : "detail-kanji";
+
+  let html = `
+    <div class="${displayClass}">
+      ${escapeHtml(node.id)}
+    </div>
+
+    <div>
+      Learning level
+      <strong>
+        ${node.level}
+      </strong>
+
+      ${
+        node.target
+        && node.jlpt_level
+          ? ` · ${
+              escapeHtml(
+                node.jlpt_level
+              )
+            } target`
+          : ""
+      }
+    </div>
+  `;
+
+  if (
+    node.type
+    === "component_id"
+  ) {
+    html += `
+      <div class="warning">
+        This is an external component identifier rather
+        than a standalone Unicode character.
+      </div>
+    `;
+  }
+
+  if (meanings.length) {
+    html += `
+      <div class="detail-title">
+        Meaning
+      </div>
+
+      <div>
+        ${
+          meanings
+            .map(
+              escapeHtml
+            )
+            .join(", ")
+        }
+      </div>
+    `;
+  }
+
+  if (onyomi.length) {
+    html += `
+      <div class="detail-title">
+        On'yomi
+      </div>
+
+      <div class="chips">
+        ${
+          onyomi
+            .map(
+              value => `
+                <span class="chip">
+                  ${escapeHtml(value)}
+                </span>
+              `
+            )
+            .join("")
+        }
+      </div>
+    `;
+  }
+
+  if (kunyomi.length) {
+    html += `
+      <div class="detail-title">
+        Kun'yomi
+      </div>
+
+      <div class="chips">
+        ${
+          kunyomi
+            .map(
+              value => `
+                <span class="chip">
+                  ${escapeHtml(value)}
+                </span>
+              `
+            )
+            .join("")
+        }
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="detail-title">
+      Direct learning prerequisites
+    </div>
+
+    <div class="chips">
+  `;
+
+  if (actual.length) {
+    html +=
+      actual
+        .map(
+          value => `
+            <span
+              class="chip clickable"
+              data-focus-node="${escapeHtml(value)}"
+            >
+              ${escapeHtml(value)}
+            </span>
+          `
+        )
+        .join("");
+  }
+  else {
+    html += `
+      <span class="subtle">
+        None — atomic at present
+      </span>
+    `;
+  }
+
+  html += `
+    </div>
+  `;
+
+  if (
+    node.variant_of
+    ?.length
+  ) {
+    html += `
+      <div class="detail-title">
+        Variant of
+      </div>
+
+      <div class="chips">
+        ${
+          node.variant_of
+            .map(
+              value => `
+                <span class="chip">
+                  ${escapeHtml(value)}
+                </span>
+              `
+            )
+            .join("")
+        }
+      </div>
+    `;
+  }
+
+  if (
+    node.decomposition_complete
+    === false
+  ) {
+    html += `
+      <div class="warning">
+        <strong>
+          Incomplete KanjiVG decomposition
+        </strong>
+        <br>
+    `;
+
+    if (raw.length) {
+      html += `
+        Named subcomponents:
+        ${
+          raw
+            .map(
+              escapeHtml
+            )
+            .join(", ")
+        }
+        <br>
+      `;
+    }
+
+    html += `
+        Residual strokes:
+        ${
+          node.residual_stroke_count
+          ?? 0
+        }
+      </div>
+    `;
+  }
+
+  if (
+    node.leaf_reason
+    === "missing_kanjivg"
+  ) {
+    html += `
+      <div class="warning">
+        No standalone KanjiVG SVG exists for this
+        component, so it is currently treated as
+        an atomic leaf.
+      </div>
+    `;
+  }
+
+  if (
+    node.leaf_reason
+    === "external_component_id"
+  ) {
+    html += `
+      <div class="warning">
+        KanjiVG identifies this component using an
+        external component ID. It is currently an
+        atomic leaf.
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="detail-title">
+      Focus graph
+    </div>
+
+    <div>
+      ${prerequisites.size}
+      prerequisite ancestor${
+        prerequisites.size === 1
+          ? ""
+          : "s"
+      }
+
+      ·
+
+      ${dependents.size}
+      dependent${
+        dependents.size === 1
+          ? ""
+          : "s"
+      }
+    </div>
+
+    <div class="detail-title">
+      Strokes
+    </div>
+
+    <div>
+      ${
+        node.stroke_count
+        ?? "unknown"
+      }
+    </div>
+  `;
+
+  const details =
+    document.getElementById(
+      "details"
+    );
+
+  details.innerHTML =
+    html;
+
+  for (
+    const chip
+    of details.querySelectorAll(
+      "[data-focus-node]"
+    )
+  ) {
+    chip.addEventListener(
+      "click",
+      () => {
+        focusNode(
+          chip.dataset.focusNode
+        );
+      }
+    );
+  }
+}
+
+
+/* ================================================================
+   Scrolling
+   ================================================================ */
+
+function scrollNodeIntoView(id) {
+  const position =
+    nodePositions.get(id);
+
+  if (!position) {
+    return;
+  }
+
+  const container =
+    document.getElementById(
+      "graph-container"
+    );
+
+  container.scrollTo({
+    left:
+      Math.max(
+        0,
+        position.x
+        - container.clientWidth / 2
+      ),
+
+    top:
+      Math.max(
+        0,
+        position.y
+        - container.clientHeight / 2
+      ),
+
+    behavior:
+      "smooth"
+  });
+}
+
+
+/* ================================================================
+   Search
+   ================================================================ */
+
+function search() {
+  if (!graphData) {
+    return;
+  }
+
+  const rawQuery =
+    document
+      .getElementById(
+        "search"
+      )
+      .value
+      .trim();
+
+  if (!rawQuery) {
+    return;
+  }
+
+  const query =
+    rawQuery.toLowerCase();
+
+  /*
+   * Exact component/kanji ID first.
+   */
+  for (
+    const node
+    of graphData.nodes
+  ) {
+    if (
+      node.id
+        .toLowerCase()
+      === query
+    ) {
+      focusNode(
+        node.id
+      );
+
+      return;
+    }
+  }
+
+  /*
+   * Meaning / reading search.
+   */
+  for (
+    const node
+    of graphData.nodes
+  ) {
+    const meanings =
+      node.jlpt?.meanings
+      ?? [];
+
+    const onyomi =
+      node.jlpt?.onyomi
+      ?? [];
+
+    const kunyomi =
+      node.jlpt?.kunyomi
+      ?? [];
+
+    const text = [
+      ...meanings,
+      ...onyomi,
+      ...kunyomi
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (
+      text.includes(query)
+    ) {
+      focusNode(
+        node.id
+      );
+
+      return;
+    }
+  }
+
+  setStatus(
+    `No match for “${rawQuery}”`
+  );
+}
+
+
+/* ================================================================
+   Events
+   ================================================================ */
+
+document
+  .getElementById(
+    "search-button"
+  )
+  .addEventListener(
+    "click",
+    search
+  );
+
+
+document
+  .getElementById(
+    "overview-button"
+  )
+  .addEventListener(
+    "click",
+    showOverview
+  );
+
+
+document
+  .getElementById(
+    "search"
+  )
+  .addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key
+        === "Enter"
+      ) {
+        search();
+      }
+    }
+  );
+
+
+document
+  .getElementById(
+    "jlpt-level"
+  )
+  .addEventListener(
+    "change",
+    () => {
+      loadGraph()
+        .catch(
+          showLoadError
+        );
+    }
+  );
+
+
+function showLoadError(error) {
+  console.error(error);
+
+  setStatus(
+    "Error"
+  );
+
+  document
+    .getElementById(
+      "details"
+    )
+    .innerHTML = `
+      <div class="warning">
+        Failed to load graph:
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+}
+
+
+/* ================================================================
+   Start
+   ================================================================ */
+
+loadGraph()
+  .catch(
+    showLoadError
+  );
+
+</script>
+
+<div id="tooltip"></div>
+</body>
+</html>
