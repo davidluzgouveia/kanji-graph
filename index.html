@@ -1,3744 +1,1770 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kanji Learning Graph</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: #222;
+        background: #f6f7f9;
+      }
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+      * {
+        box-sizing: border-box;
+      }
 
-  <title>Kanji Learning Graph</title>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
 
-  <style>
-    :root {
-      font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+      body {
+        overflow: hidden;
+      }
 
-      color: #222;
-      background: #f6f7f9;
-    }
+      button,
+      input {
+        font: inherit;
+      }
 
-    * {
-      box-sizing: border-box;
-    }
+      #app {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        height: 100vh;
+      }
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    body {
-      overflow: hidden;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    #app {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
-      height: 100vh;
-    }
-
-    /* ============================================================
+      /* ============================================================
        Main
        ============================================================ */
-
-    #main {
-      min-width: 0;
-      min-height: 0;
-
-      display: flex;
-      flex-direction: column;
-    }
-
-    #toolbar {
-      position: relative;
-      z-index: 50;
-
-      flex: 0 0 auto;
-      min-height: 58px;
-
-      display: flex;
-      align-items: center;
-      gap: 10px;
-
-      padding: 10px 16px;
-
-      background: white;
-      border-bottom: 1px solid #ddd;
-    }
-
-    #toolbar h1 {
-      margin: 0 12px 0 0;
-
-      font-size: 17px;
-      font-weight: 650;
-      white-space: nowrap;
-    }
-
-    #search,
-    button {
-      height: 34px;
-
-      border: 1px solid #bbb;
-      border-radius: 6px;
-
-      background: white;
-
-      font-size: 14px;
-    }
-
-    #search {
-      width: 230px;
-      padding: 0 10px;
-    }
-
-    button {
-      padding: 0 13px;
-      cursor: pointer;
-    }
-
-    button:hover:not(:disabled) {
-      background: #f1f2f4;
-    }
-
-    button:disabled {
-      cursor: default;
-      opacity: 0.4;
-    }
-
-    #back-button {
-      font-weight: 600;
-    }
-
-    #toolbar-spacer {
-      flex: 1 1 auto;
-    }
-
-    #status {
-      font-size: 12px;
-      color: #777;
-      white-space: nowrap;
-    }
-
-    /* ============================================================
-       JLPT level control
-       ============================================================ */
-
-    .level-control {
-      display: inline-flex;
-
-      border: 1px solid #bbb;
-      border-radius: 7px;
-
-      overflow: hidden;
-
-      background: white;
-    }
-
-    .level-button {
-      height: 32px;
-
-      padding: 0 10px;
-
-      border: 0;
-      border-right: 1px solid #ddd;
-      border-radius: 0;
-
-      background: white;
-
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .level-button:last-child {
-      border-right: 0;
-    }
-
-    .level-button:hover:not(:disabled) {
-      background: #edf2f8;
-    }
-
-    .level-button.active {
-      background: #3973b9;
-      color: white;
-    }
-
-    .level-button.active:hover {
-      background: #3973b9;
-    }
-
-    /* ============================================================
-       Graph container
-       ============================================================ */
-
-    #graph-container {
-      position: relative;
-      z-index: 1;
-
-      flex: 1 1 auto;
-      min-height: 0;
-
-      overflow: auto;
-
-      background: #fafafa;
-    }
-
-    #graph {
-      display: block;
-    }
-
-    /* ============================================================
-       Sidebar
-       ============================================================ */
-
-    #sidebar {
-      min-height: 0;
-      overflow-y: auto;
-
-      padding: 18px;
-
-      background: white;
-      border-left: 1px solid #ddd;
-    }
-
-    #sidebar h2 {
-      margin: 0 0 14px;
-      font-size: 17px;
-    }
-
-    #sidebar h3 {
-      margin: 24px 0 10px;
-      font-size: 14px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px 12px;
-
-      font-size: 13px;
-    }
-
-    .stats .value {
-      max-width: 160px;
-
-      text-align: right;
-      font-weight: 600;
-    }
-
-    .hint {
-      margin: 0;
-
-      font-size: 13px;
-      line-height: 1.5;
-
-      color: #666;
-    }
-
-    .legend {
-      display: grid;
-      gap: 9px;
-
-      font-size: 13px;
-    }
-
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-
-    .legend-box {
-      flex: 0 0 auto;
-
-      width: 30px;
-      height: 21px;
-
-      border: 1.5px solid #777;
-      border-radius: 5px;
-
-      background: white;
-    }
-
-    .legend-box.target {
-      background: #e8f1ff;
-      border-color: #3973b9;
-    }
-
-    .legend-box.incomplete {
-      border-style: dashed;
-    }
-
-    .legend-box.component-id {
-      background: #f1eef8;
-    }
-
-    #details {
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .detail-kanji {
-      margin-bottom: 10px;
-
-      font-family:
-        "Noto Sans CJK JP",
-        "Noto Sans JP",
-        "Yu Gothic",
-        sans-serif;
-
-      font-size: 72px;
-      line-height: 1.1;
-    }
-
-    .detail-kanji.component-id {
-      font-family: monospace;
-      font-size: 25px;
-
-      overflow-wrap: anywhere;
-    }
-
-    .detail-title {
-      margin-top: 15px;
-
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-
-      margin-top: 5px;
-    }
-
-    .chip {
-      display: inline-block;
-
-      padding: 2px 7px;
-
-      border-radius: 999px;
-
-      background: #eee;
-
-      font-size: 12px;
-    }
-
-    .chip.clickable {
-      cursor: pointer;
-    }
-
-    .chip.clickable:hover {
-      background: #ddd;
-    }
-
-    .warning {
-      margin-top: 12px;
-      padding: 9px;
-
-      border-radius: 5px;
-
-      background: #fff4df;
-
-      font-size: 12px;
-    }
-
-    .subtle {
-      color: #777;
-    }
-
-    /* ============================================================
-       SVG
-       ============================================================ */
-
-    .level-background {
-      fill: #fff;
-      stroke: #eee;
-    }
-
-    .level-title {
-      font-size: 14px;
-      font-weight: 600;
-
-      fill: #555;
-    }
-
-    .edge {
-      fill: none;
-
-      stroke: #c8ccd1;
-      stroke-width: 1.3;
-
-      opacity: 0.72;
-    }
-
-    .edge.active {
-      stroke: #4077b5;
-      stroke-width: 1.8;
-
-      opacity: 0.9;
-    }
-
-    .edge.long-edge {
-      stroke-width: 1.35;
-    }
-
-    .node {
-      cursor: pointer;
-    }
-
-    .node rect {
-      fill: white;
-
-      stroke: #777;
-      stroke-width: 1.3;
-
-      rx: 7;
-      ry: 7;
-    }
-
-    .node:hover rect {
-      stroke: #111;
-      stroke-width: 2;
-    }
-
-    .node.target rect {
-      fill: #e8f1ff;
-
-      stroke: #3973b9;
-      stroke-width: 1.6;
-    }
-
-    .node.incomplete rect {
-      stroke-dasharray: 5 3;
-    }
-
-    .node.component-id rect {
-      fill: #f1eef8;
-    }
-
-    .node.selected rect {
-      stroke: #111;
-      stroke-width: 3;
-      stroke-dasharray: none;
-    }
-
-    .node.related rect {
-      stroke: #4077b5;
-      stroke-width: 2;
-    }
-
-    .kanji {
-      font-family:
-        "Noto Sans CJK JP",
-        "Noto Sans JP",
-        "Yu Gothic",
-        sans-serif;
-
-      font-size: 25px;
-
-      text-anchor: middle;
-      dominant-baseline: middle;
-
-      fill: #111;
-
-      pointer-events: none;
-    }
-
-    .focus-kanji {
-      font-size: 28px;
-    }
-
-    .node.component-id .kanji {
-      font-family: monospace;
-      font-size: 10px;
-    }
-
-    .jlpt-label {
-      font-size: 8px;
-      font-weight: 700;
-
-      fill: #3973b9;
-
-      pointer-events: none;
-    }
-
-    .variant-label {
-      font-size: 8px;
-
-      fill: #777;
-
-      pointer-events: none;
-    }
-
-    .node-meaning {
-      width: 100%;
-      height: 100%;
-
-      display: -webkit-box;
-
-      overflow: hidden;
-
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-
-      text-align: center;
-
-      font-family:
-        Inter,
-        system-ui,
-        sans-serif;
-
-      font-size: 10.5px;
-      line-height: 1.2;
-
-      color: #555;
-
-      pointer-events: none;
-    }
-
-    /* ============================================================
-       Hover tooltip
-       ============================================================ */
-
-    #tooltip {
-      position: fixed;
-      z-index: 1000;
-
-      max-width: 300px;
-
-      padding: 7px 10px;
-
-      border-radius: 6px;
-
-      background: rgba(25, 25, 25, 0.95);
-      color: white;
-
-      font-size: 13px;
-      line-height: 1.35;
-
-      pointer-events: none;
-
-      opacity: 0;
-
-      transition: opacity 80ms;
-    }
-
-    #tooltip.visible {
-      opacity: 1;
-    }
-
-    .tooltip-kanji {
-      margin-right: 5px;
-
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .tooltip-level {
-      font-size: 11px;
-
-      opacity: 0.7;
-    }
-
-    /* ============================================================
-       Responsive
-       ============================================================ */
-
-    @media (max-width: 950px) {
-      #app {
-        grid-template-columns: minmax(0, 1fr) 280px;
+      #main {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #toolbar {
+        position: relative;
+        z-index: 50;
+        flex: 0 0 auto;
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: white;
+        border-bottom: 1px solid #ddd;
       }
 
       #toolbar h1 {
-        display: none;
+        margin: 0 12px 0 0;
+        font-size: 17px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      #search,
+      button {
+        height: 34px;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        background: white;
+        font-size: 14px;
       }
 
       #search {
-        width: 170px;
+        width: 230px;
+        padding: 0 10px;
       }
-    }
-  </style>
-</head>
 
-<body>
+      button {
+        padding: 0 13px;
+        cursor: pointer;
+      }
 
-<div id="app">
+      button:hover:not(:disabled) {
+        background: #f1f2f4;
+      }
 
-  <main id="main">
+      button:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
 
-    <div id="toolbar">
+      #back-button {
+        font-weight: 600;
+      }
 
-      <h1>Kanji Learning Graph</h1>
+      #toolbar-spacer {
+        flex: 1 1 auto;
+      }
 
-      <button
-        id="back-button"
-        type="button"
-        disabled
-        title="Return to the previous graph view"
-      >
-        ← Back
-      </button>
+      #status {
+        font-size: 12px;
+        color: #777;
+        white-space: nowrap;
+      }
 
-      <div
-        id="jlpt-levels"
-        class="level-control"
-        aria-label="Maximum JLPT level"
-      >
-        <button
-          class="level-button active"
-          type="button"
-          data-level="N5"
-        >
-          N5
-        </button>
+      /* ============================================================
+       JLPT level control
+       ============================================================ */
+      .level-control {
+        display: inline-flex;
+        border: 1px solid #bbb;
+        border-radius: 7px;
+        overflow: hidden;
+        background: white;
+      }
 
-        <button
-          class="level-button"
-          type="button"
-          data-level="N4"
-        >
-          N4
-        </button>
+      .level-button {
+        height: 32px;
+        padding: 0 10px;
+        border: 0;
+        border-right: 1px solid #ddd;
+        border-radius: 0;
+        background: white;
+        font-size: 12px;
+        font-weight: 600;
+      }
 
-        <button
-          class="level-button"
-          type="button"
-          data-level="N3"
-        >
-          N3
-        </button>
+      .level-button:last-child {
+        border-right: 0;
+      }
 
-        <button
-          class="level-button"
-          type="button"
-          data-level="N2"
-        >
-          N2
-        </button>
+      .level-button:hover:not(:disabled) {
+        background: #edf2f8;
+      }
 
-        <button
-          class="level-button"
-          type="button"
-          data-level="N1"
-        >
-          N1
-        </button>
-      </div>
+      .level-button.active {
+        background: #3973b9;
+        color: white;
+      }
 
-      <input
-        id="search"
-        placeholder="Kanji, component, meaning…"
-        autocomplete="off"
-      >
+      .level-button.active:hover {
+        background: #3973b9;
+      }
 
-      <button
-        id="search-button"
-        type="button"
-      >
-        Find
-      </button>
+      /* ============================================================
+       Graph container
+       ============================================================ */
+      #graph-container {
+        position: relative;
+        z-index: 1;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        background: #fafafa;
+      }
 
-      <button
-        id="overview-button"
-        type="button"
-      >
-        Overview
-      </button>
+      #graph {
+        display: block;
+      }
 
-      <div id="toolbar-spacer"></div>
+      /* ============================================================
+       Sidebar
+       ============================================================ */
+      #sidebar {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 18px;
+        background: white;
+        border-left: 1px solid #ddd;
+      }
 
-      <div id="status"></div>
+      #sidebar h2 {
+        margin: 0 0 14px;
+        font-size: 17px;
+      }
 
+      #sidebar h3 {
+        margin: 24px 0 10px;
+        font-size: 14px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px 12px;
+        font-size: 13px;
+      }
+
+      .stats .value {
+        max-width: 160px;
+        text-align: right;
+        font-weight: 600;
+      }
+
+      .hint {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #666;
+      }
+
+      .legend {
+        display: grid;
+        gap: 9px;
+        font-size: 13px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .legend-box {
+        flex: 0 0 auto;
+        width: 30px;
+        height: 21px;
+        border: 1.5px solid #777;
+        border-radius: 5px;
+        background: white;
+      }
+
+      .legend-box.target {
+        background: #e8f1ff;
+        border-color: #3973b9;
+      }
+
+      .legend-box.incomplete {
+        border-style: dashed;
+      }
+
+      .legend-box.component-id {
+        background: #f1eef8;
+      }
+
+      #details {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .detail-kanji {
+        margin-bottom: 10px;
+        font-family:
+          "Noto Sans CJK JP",
+          "Noto Sans JP",
+          "Yu Gothic",
+          sans-serif;
+        font-size: 72px;
+        line-height: 1.1;
+      }
+
+      .detail-kanji.component-id {
+        font-family: monospace;
+        font-size: 25px;
+        overflow-wrap: anywhere;
+      }
+
+      .detail-title {
+        margin-top: 15px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      }
+
+      .chip {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: #eee;
+        font-size: 12px;
+      }
+
+      .chip.clickable {
+        cursor: pointer;
+      }
+
+      .chip.clickable:hover {
+        background: #ddd;
+      }
+
+      .warning {
+        margin-top: 12px;
+        padding: 9px;
+        border-radius: 5px;
+        background: #fff4df;
+        font-size: 12px;
+      }
+
+      .subtle {
+        color: #777;
+      }
+
+      /* ============================================================
+       SVG
+       ============================================================ */
+      .level-background {
+        fill: #fff;
+        stroke: #eee;
+      }
+
+      .level-title {
+        font-size: 14px;
+        font-weight: 600;
+        fill: #555;
+      }
+
+      .edge {
+        fill: none;
+        stroke: #c8ccd1;
+        stroke-width: 1.3;
+        opacity: 0.72;
+      }
+
+      .edge.active {
+        stroke: #4077b5;
+        stroke-width: 1.8;
+        opacity: 0.9;
+      }
+
+      .edge.long-edge {
+        stroke-width: 1.35;
+      }
+
+      .node {
+        cursor: pointer;
+      }
+
+      .node rect {
+        fill: white;
+        stroke: #777;
+        stroke-width: 1.3;
+        rx: 7;
+        ry: 7;
+      }
+
+      .node:hover rect {
+        stroke: #111;
+        stroke-width: 2;
+      }
+
+      .node.target rect {
+        fill: #e8f1ff;
+        stroke: #3973b9;
+        stroke-width: 1.6;
+      }
+
+      .node.incomplete rect {
+        stroke-dasharray: 5 3;
+      }
+
+      .node.component-id rect {
+        fill: #f1eef8;
+      }
+
+      .node.selected rect {
+        stroke: #111;
+        stroke-width: 3;
+        stroke-dasharray: none;
+      }
+
+      .node.related rect {
+        stroke: #4077b5;
+        stroke-width: 2;
+      }
+
+      .kanji {
+        font-family:
+          "Noto Sans CJK JP",
+          "Noto Sans JP",
+          "Yu Gothic",
+          sans-serif;
+        font-size: 25px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: #111;
+        pointer-events: none;
+      }
+
+      .focus-kanji {
+        font-size: 28px;
+      }
+
+      .node.component-id .kanji {
+        font-family: monospace;
+        font-size: 10px;
+      }
+
+      .jlpt-label {
+        font-size: 8px;
+        font-weight: 700;
+        fill: #3973b9;
+        pointer-events: none;
+      }
+
+      .variant-label {
+        font-size: 8px;
+        fill: #777;
+        pointer-events: none;
+      }
+
+      .node-meaning {
+        width: 100%;
+        height: 100%;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        text-align: center;
+        font-family:
+          Inter,
+          system-ui,
+          sans-serif;
+        font-size: 10.5px;
+        line-height: 1.2;
+        color: #555;
+        pointer-events: none;
+      }
+
+      /* ============================================================
+       Hover tooltip
+       ============================================================ */
+      #tooltip {
+        position: fixed;
+        z-index: 1000;
+        max-width: 300px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        background: rgba(25, 25, 25, 0.95);
+        color: white;
+        font-size: 13px;
+        line-height: 1.35;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 80ms;
+      }
+
+      #tooltip.visible {
+        opacity: 1;
+      }
+
+      .tooltip-kanji {
+        margin-right: 5px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .tooltip-level {
+        font-size: 11px;
+        opacity: 0.7;
+      }
+
+      /* ============================================================
+       Responsive
+       ============================================================ */
+      @media (max-width: 950px) {
+        #app {
+          grid-template-columns: minmax(0, 1fr) 280px;
+        }
+
+        #toolbar h1 {
+          display: none;
+        }
+
+        #search {
+          width: 170px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <main id="main">
+        <div id="toolbar">
+          <h1>Kanji Learning Graph</h1><button id="back-button" type="button" disabled title="Return to the previous graph view"> ← Back </button>
+          <div id="jlpt-levels" class="level-control" aria-label="Maximum JLPT level"><button class="level-button active" type="button" data-level="N5"> N5 </button><button class="level-button" type="button" data-level="N4"> N4 </button><button class="level-button" type="button" data-level="N3"> N3 </button><button class="level-button" type="button" data-level="N2"> N2 </button><button class="level-button" type="button" data-level="N1"> N1 </button></div><input id="search" placeholder="Kanji, component, meaning…" autocomplete="off"><button id="search-button" type="button"> Find </button><button id="overview-button" type="button"> Overview </button>
+          <div id="toolbar-spacer"></div>
+          <div id="status"></div>
+        </div>
+        <div id="graph-container"><svg id="graph"></svg></div>
+      </main>
+      <aside id="sidebar">
+        <h2>Graph</h2>
+        <div id="stats" class="stats"></div>
+        <h3>Legend</h3>
+        <div class="legend">
+          <div class="legend-row">
+            <div class="legend-box target"></div><span>JLPT target</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-box"></div><span>Prerequisite component</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-box incomplete"></div><span> Contains residual/unclassified strokes </span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-box component-id"></div><span> External component identifier </span>
+          </div>
+        </div>
+        <h3>Selected node</h3>
+        <div id="details">
+          <p class="hint"> Click or search for a kanji to focus on its complete prerequisite and dependent graph. </p>
+        </div>
+      </aside>
     </div>
-
-    <div id="graph-container">
-      <svg id="graph"></svg>
-    </div>
-
-  </main>
-
-  <aside id="sidebar">
-
-    <h2>Graph</h2>
-
-    <div
-      id="stats"
-      class="stats"
-    ></div>
-
-    <h3>Legend</h3>
-
-    <div class="legend">
-
-      <div class="legend-row">
-        <div class="legend-box target"></div>
-        <span>JLPT target</span>
-      </div>
-
-      <div class="legend-row">
-        <div class="legend-box"></div>
-        <span>Prerequisite component</span>
-      </div>
-
-      <div class="legend-row">
-        <div class="legend-box incomplete"></div>
-
-        <span>
-          Contains residual/unclassified strokes
-        </span>
-      </div>
-
-      <div class="legend-row">
-        <div class="legend-box component-id"></div>
-
-        <span>
-          External component identifier
-        </span>
-      </div>
-
-    </div>
-
-    <h3>Selected node</h3>
-
-    <div id="details">
-
-      <p class="hint">
-        Click or search for a kanji to focus on its complete
-        prerequisite and dependent graph.
-      </p>
-
-    </div>
-
-  </aside>
-
-</div>
-
-
-<div id="tooltip"></div>
-
-
-<script>
-"use strict";
-
-
-/* ================================================================
-   Configuration
-   ================================================================ */
-
-const SVG_NS =
-  "http://www.w3.org/2000/svg";
-
-const XHTML_NS =
-  "http://www.w3.org/1999/xhtml";
-
-
-const OVERVIEW_NODE_WIDTH = 92;
-const OVERVIEW_NODE_HEIGHT = 44;
-
-const FOCUS_NODE_WIDTH = 142;
-const FOCUS_NODE_HEIGHT = 84;
-
-
-const OVERVIEW_COLUMN_WIDTH = 230;
-const FOCUS_COLUMN_WIDTH = 270;
-
-const OVERVIEW_ROW_HEIGHT = 58;
-const FOCUS_ROW_HEIGHT = 100;
-
-
-const COLUMN_PADDING = 45;
-
-const BASE_TOP_PADDING = 70;
-const BOTTOM_PADDING = 40;
-
-
-/*
- * Long edges in focus mode are routed through a set of horizontal
- * lanes above the nodes.
- *
- * This prevents an edge such as:
- *
- *      level 0  ------------->  level 2
- *
- * from visually passing through a level-1 node.
- */
-/*
- * Routing for edges that skip one or more columns.
- *
- * Long edges are routed through local horizontal lanes above
- * or below the intermediate nodes instead of always going
- * through one large corridor at the top of the graph.
- */
-const LONG_EDGE_CLEARANCE = 16;
-
-const LONG_EDGE_LANE_SPACING = 12;
-
-const LONG_EDGE_GUTTER_BASE = 18;
-const LONG_EDGE_GUTTER_SPACING = 9;
-
-const LONG_EDGE_MAX_GUTTER_SLOTS = 6;
-
-const LONG_EDGE_PORT_SPACING = 7;
-const LONG_EDGE_MAX_PORT_OFFSET = 21;
-
-const LONG_EDGE_GRAPH_MARGIN = 16;
-
-
-/* ================================================================
-   State
-   ================================================================ */
-
-let masterGraphData = null;
-let graphData = null;
-
-let nodesById = new Map();
-
-let incoming = new Map();
-let outgoing = new Map();
-
-let nodeElements = new Map();
-let edgeElements = [];
-
-let nodePositions = new Map();
-
-
-let currentFocusId = null;
-let visibleNodeIds = null;
-
-
-/*
- * Custom navigation history.
- *
- * Each entry stores both focus and scroll position.
- *
- * This means:
- *
- *   Overview
- *      ↓ click 語
- *   語
- *      ↓ click 吾
- *   吾
- *      ↓ Back
- *   語
- *      ↓ Back
- *   Overview
- */
-let viewHistory = [];
-
-
-/*
- * We no longer use a native <select>. This removes the browser-specific
- * dropdown issue entirely.
- */
-let selectedJlptLevel = "N5";
-
-
-/*
- * Used to ignore stale fetches if someone rapidly switches levels.
- */
-let loadRequestId = 0;
-
-
-/* ================================================================
-   Helpers
-   ================================================================ */
-
-function svgElement(
-  name,
-  attributes = {}
-) {
-  const element =
-    document.createElementNS(
-      SVG_NS,
-      name
-    );
-
-  for (
-    const [key, value]
-    of Object.entries(attributes)
-  ) {
-    element.setAttribute(
-      key,
-      value
-    );
-  }
-
-  return element;
-}
-
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-
-function setStatus(text) {
-  document
-    .getElementById("status")
-    .textContent = text;
-}
-
-
-function getNodeWidth() {
-  return currentFocusId
-    ? FOCUS_NODE_WIDTH
-    : OVERVIEW_NODE_WIDTH;
-}
-
-
-function getNodeHeight() {
-  return currentFocusId
-    ? FOCUS_NODE_HEIGHT
-    : OVERVIEW_NODE_HEIGHT;
-}
-
-
-function getColumnWidth() {
-  return currentFocusId
-    ? FOCUS_COLUMN_WIDTH
-    : OVERVIEW_COLUMN_WIDTH;
-}
-
-
-function getRowHeight() {
-  return currentFocusId
-    ? FOCUS_ROW_HEIGHT
-    : OVERVIEW_ROW_HEIGHT;
-}
-
-
-function isComponentId(node) {
-  return (
-    node.type === "component_id"
-    || node.id.startsWith("CDP-")
-  );
-}
-
-
-/* ================================================================
-   JLPT level controls
-   ================================================================ */
-
-function syncLevelButtons() {
-  for (
-    const button
-    of document.querySelectorAll(
-      ".level-button"
-    )
-  ) {
-    button.classList.toggle(
-      "active",
-      button.dataset.level
-        === selectedJlptLevel
-    );
-  }
-}
-
-
-function setLevelButtonsDisabled(disabled) {
-  for (
-    const button
-    of document.querySelectorAll(
-      ".level-button"
-    )
-  ) {
-    button.disabled = disabled;
-  }
-}
-
-
-/* ================================================================
-   Loading
-   ================================================================ */
-
-const JLPT_LEVEL_ORDER = [
-  "N5",
-  "N4",
-  "N3",
-  "N2",
-  "N1"
-];
-
-
-function isLevelIncluded(
-  nodeLevel,
-  selectedLevel
-) {
-  if (!nodeLevel) {
-    return false;
-  }
-
-  return (
-    JLPT_LEVEL_ORDER.indexOf(nodeLevel)
-    <=
-    JLPT_LEVEL_ORDER.indexOf(selectedLevel)
-  );
-}
-
-
-function buildFilteredGraph(
-  sourceGraph,
-  selectedLevel
-) {
-  /*
-   * Full N1 graph lookup tables.
-   */
-  const sourceNodesById =
-    new Map(
-      sourceGraph.nodes.map(
-        node => [
+    <div id="tooltip"></div>
+    <script>
+      "use strict";
+      /* ================================================================
+         Configuration
+         ================================================================ */
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const XHTML_NS = "http://www.w3.org/1999/xhtml";
+      const OVERVIEW_NODE_WIDTH = 92;
+      const OVERVIEW_NODE_HEIGHT = 44;
+      const FOCUS_NODE_WIDTH = 142;
+      const FOCUS_NODE_HEIGHT = 84;
+      const OVERVIEW_COLUMN_WIDTH = 230;
+      const FOCUS_COLUMN_WIDTH = 270;
+      const OVERVIEW_ROW_HEIGHT = 58;
+      const FOCUS_ROW_HEIGHT = 100;
+      const COLUMN_PADDING = 45;
+      const BASE_TOP_PADDING = 70;
+      const BOTTOM_PADDING = 40;
+      /*
+       * Long edges in focus mode are routed through a set of horizontal
+       * lanes above the nodes.
+       *
+       * This prevents an edge such as:
+       *
+       *      level 0  ------------->  level 2
+       *
+       * from visually passing through a level-1 node.
+       */
+      /*
+       * Routing for edges that skip one or more columns.
+       *
+       * Long edges are routed through local horizontal lanes above
+       * or below the intermediate nodes instead of always going
+       * through one large corridor at the top of the graph.
+       */
+      const LONG_EDGE_CLEARANCE = 16;
+      const LONG_EDGE_LANE_SPACING = 12;
+      const LONG_EDGE_GUTTER_BASE = 18;
+      const LONG_EDGE_GUTTER_SPACING = 9;
+      const LONG_EDGE_MAX_GUTTER_SLOTS = 6;
+      const LONG_EDGE_PORT_SPACING = 7;
+      const LONG_EDGE_MAX_PORT_OFFSET = 21;
+      const LONG_EDGE_GRAPH_MARGIN = 16;
+      /* ================================================================
+         State
+         ================================================================ */
+      let masterGraphData = null;
+      let graphData = null;
+      let nodesById = new Map();
+      let incoming = new Map();
+      let outgoing = new Map();
+      let nodeElements = new Map();
+      let edgeElements = [];
+      let nodePositions = new Map();
+      let currentFocusId = null;
+      let visibleNodeIds = null;
+      /*
+       * Custom navigation history.
+       *
+       * Each entry stores both focus and scroll position.
+       *
+       * This means:
+       *
+       *   Overview
+       *      ↓ click 語
+       *   語
+       *      ↓ click 吾
+       *   吾
+       *      ↓ Back
+       *   語
+       *      ↓ Back
+       *   Overview
+       */
+      let viewHistory = [];
+      /*
+       * We no longer use a native 
+      <select>. This removes the browser-specific
+       * dropdown issue entirely.
+       */
+      let selectedJlptLevel = "N5";
+      /*
+       * Used to ignore stale fetches if someone rapidly switches levels.
+       */
+      let loadRequestId = 0;
+      /* ================================================================
+         Helpers
+         ================================================================ */
+      function svgElement(name, attributes = {}) {
+        const element = document.createElementNS(SVG_NS, name);
+        for (const [key, value] of Object.entries(attributes)) {
+          element.setAttribute(key, value);
+        }
+        return element;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+      }
+
+      function setStatus(text) {
+        document.getElementById("status").textContent = text;
+      }
+
+      function getNodeWidth() {
+        return currentFocusId ? FOCUS_NODE_WIDTH : OVERVIEW_NODE_WIDTH;
+      }
+
+      function getNodeHeight() {
+        return currentFocusId ? FOCUS_NODE_HEIGHT : OVERVIEW_NODE_HEIGHT;
+      }
+
+      function getColumnWidth() {
+        return currentFocusId ? FOCUS_COLUMN_WIDTH : OVERVIEW_COLUMN_WIDTH;
+      }
+
+      function getRowHeight() {
+        return currentFocusId ? FOCUS_ROW_HEIGHT : OVERVIEW_ROW_HEIGHT;
+      }
+
+      function isComponentId(node) {
+        return (node.type === "component_id" || node.id.startsWith("CDP-"));
+      }
+      /* ================================================================
+         JLPT level controls
+         ================================================================ */
+      function syncLevelButtons() {
+        for (const button of document.querySelectorAll(".level-button")) {
+          button.classList.toggle("active", button.dataset.level === selectedJlptLevel);
+        }
+      }
+
+      function setLevelButtonsDisabled(disabled) {
+        for (const button of document.querySelectorAll(".level-button")) {
+          button.disabled = disabled;
+        }
+      }
+      /* ================================================================
+         Loading
+         ================================================================ */
+      const JLPT_LEVEL_ORDER = ["N5", "N4", "N3", "N2", "N1"];
+
+      function isLevelIncluded(nodeLevel, selectedLevel) {
+        if (!nodeLevel) {
+          return false;
+        }
+        return (JLPT_LEVEL_ORDER.indexOf(nodeLevel) <= JLPT_LEVEL_ORDER.indexOf(selectedLevel));
+      }
+
+      function buildFilteredGraph(sourceGraph, selectedLevel) {
+        /*
+         * Full N1 graph lookup tables.
+         */
+        const sourceNodesById = new Map(sourceGraph.nodes.map(node => [
           node.id,
           node
-        ]
-      )
-    );
-
-  const sourceIncoming =
-    new Map();
-
-  for (
-    const node
-    of sourceGraph.nodes
-  ) {
-    sourceIncoming.set(
-      node.id,
-      []
-    );
-  }
-
-  for (
-    const edge
-    of sourceGraph.edges
-  ) {
-    if (
-      sourceIncoming.has(
-        edge.target
-      )
-    ) {
-      sourceIncoming
-        .get(edge.target)
-        .push(edge.source);
-    }
-  }
-
-
-  /*
-   * Start with all JLPT targets included in the selected
-   * cumulative level.
-   *
-   * Example:
-   *
-   * N5 -> N5
-   * N4 -> N5 + N4
-   * N3 -> N5 + N4 + N3
-   * ...
-   */
-  const targetIds =
-    new Set();
-
-  for (
-    const node
-    of sourceGraph.nodes
-  ) {
-    if (
-      node.jlpt_level
-      &&
-      isLevelIncluded(
-        node.jlpt_level,
-        selectedLevel
-      )
-    ) {
-      targetIds.add(
-        node.id
-      );
-    }
-  }
-
-
-  /*
-   * Starting from those targets, recursively pull in every
-   * prerequisite they need.
-   */
-  const includedIds =
-    new Set(
-      targetIds
-    );
-
-  const stack = [
-    ...targetIds
-  ];
-
-  while (
-    stack.length
-  ) {
-    const current =
-      stack.pop();
-
-    for (
-      const prerequisite
-      of sourceIncoming.get(current)
-        ?? []
-    ) {
-      if (
-        includedIds.has(
-          prerequisite
-        )
-      ) {
-        continue;
-      }
-
-      includedIds.add(
-        prerequisite
-      );
-
-      stack.push(
-        prerequisite
-      );
-    }
-  }
-
-
-  /*
-   * Clone nodes because their "target" status depends on the
-   * currently selected JLPT range.
-   *
-   * A node can be an N2 target in the full graph, but when
-   * viewing N5 it should only look like a prerequisite component
-   * if an N5 kanji happens to depend on it.
-   */
-  const nodes =
-    sourceGraph.nodes
-      .filter(
-        node =>
-          includedIds.has(
-            node.id
-          )
-      )
-      .map(
-        node => ({
+        ]));
+        const sourceIncoming = new Map();
+        for (const node of sourceGraph.nodes) {
+          sourceIncoming.set(node.id,
+            []);
+        }
+        for (const edge of sourceGraph.edges) {
+          if (sourceIncoming.has(edge.target)) {
+            sourceIncoming.get(edge.target).push(edge.source);
+          }
+        }
+        /*
+         * Start with all JLPT targets included in the selected
+         * cumulative level.
+         *
+         * Example:
+         *
+         * N5 -> N5
+         * N4 -> N5 + N4
+         * N3 -> N5 + N4 + N3
+         * ...
+         */
+        const targetIds = new Set();
+        for (const node of sourceGraph.nodes) {
+          if (node.jlpt_level && isLevelIncluded(node.jlpt_level, selectedLevel)) {
+            targetIds.add(node.id);
+          }
+        }
+        /*
+         * Starting from those targets, recursively pull in every
+         * prerequisite they need.
+         */
+        const includedIds = new Set(targetIds);
+        const stack = [...targetIds];
+        while (stack.length) {
+          const current = stack.pop();
+          for (const prerequisite of sourceIncoming.get(current) ?? []) {
+            if (includedIds.has(prerequisite)) {
+              continue;
+            }
+            includedIds.add(prerequisite);
+            stack.push(prerequisite);
+          }
+        }
+        /*
+         * Clone nodes because their "target" status depends on the
+         * currently selected JLPT range.
+         *
+         * A node can be an N2 target in the full graph, but when
+         * viewing N5 it should only look like a prerequisite component
+         * if an N5 kanji happens to depend on it.
+         */
+        const nodes = sourceGraph.nodes.filter(node => includedIds.has(node.id)).map(node => ({
           ...node,
-
-          target:
-            targetIds.has(
-              node.id
-            )
-        })
-      );
-
-
-  const edges =
-    sourceGraph.edges.filter(
-      edge =>
-        includedIds.has(
-          edge.source
-        )
-        &&
-        includedIds.has(
-          edge.target
-        )
-    );
-
-
-  /*
-   * Recalculate the stats needed by the frontend.
-   */
-  const levelCounts = {};
-  const targetLevelCounts = {};
-  const jlptTargetCounts = {};
-
-  let leafCount = 0;
-  let incompleteCount = 0;
-  let missingKanjiVGCount = 0;
-  let variantNodeCount = 0;
-  let maxGraphLevel = 0;
-
-  for (
-    const node
-    of nodes
-  ) {
-    maxGraphLevel =
-      Math.max(
-        maxGraphLevel,
-        node.level ?? 0
-      );
-
-    const levelKey =
-      String(
-        node.level ?? 0
-      );
-
-    levelCounts[levelKey] =
-      (
-        levelCounts[levelKey]
-        ?? 0
-      ) + 1;
-
-    if (
-      node.target
-    ) {
-      targetLevelCounts[levelKey] =
-        (
-          targetLevelCounts[levelKey]
-          ?? 0
-        ) + 1;
-
-      if (
-        node.jlpt_level
-      ) {
-        jlptTargetCounts[
-          node.jlpt_level
-        ] =
-          (
-            jlptTargetCounts[
-              node.jlpt_level
-            ]
-            ?? 0
-          ) + 1;
+          target: targetIds.has(node.id)
+        }));
+        const edges = sourceGraph.edges.filter(edge => includedIds.has(edge.source) && includedIds.has(edge.target));
+        /*
+         * Recalculate the stats needed by the frontend.
+         */
+        const levelCounts = {};
+        const targetLevelCounts = {};
+        const jlptTargetCounts = {};
+        let leafCount = 0;
+        let incompleteCount = 0;
+        let missingKanjiVGCount = 0;
+        let variantNodeCount = 0;
+        let maxGraphLevel = 0;
+        for (const node of nodes) {
+          maxGraphLevel = Math.max(maxGraphLevel, node.level ?? 0);
+          const levelKey = String(node.level ?? 0);
+          levelCounts[levelKey] = (levelCounts[levelKey] ?? 0) + 1;
+          if (node.target) {
+            targetLevelCounts[levelKey] = (targetLevelCounts[levelKey] ?? 0) + 1;
+            if (node.jlpt_level) {
+              jlptTargetCounts[node.jlpt_level] = (jlptTargetCounts[node.jlpt_level] ?? 0) + 1;
+            }
+          }
+          if (node.leaf) {
+            leafCount++;
+          }
+          if (node.decomposition_complete === false) {
+            incompleteCount++;
+          }
+          if (node.leaf_reason === "missing_kanjivg") {
+            missingKanjiVGCount++;
+          }
+          if (node.variant_of?.length) {
+            variantNodeCount++;
+          }
+        }
+        return {
+          ...sourceGraph,
+          selection: {
+            max_jlpt_level: selectedLevel
+          },
+          nodes,
+          edges,
+          stats: {
+            ...sourceGraph.stats,
+            target_count: targetIds.size,
+            jlpt_target_counts: jlptTargetCounts,
+            node_count: nodes.length,
+            edge_count: edges.length,
+            leaf_count: leafCount,
+            incomplete_decomposition_count: incompleteCount,
+            missing_kanjivg_count: missingKanjiVGCount,
+            variant_node_count: variantNodeCount,
+            max_level: maxGraphLevel,
+            level_counts: levelCounts,
+            target_level_counts: targetLevelCounts
+          }
+        };
       }
-    }
-
-    if (
-      node.leaf
-    ) {
-      leafCount++;
-    }
-
-    if (
-      node.decomposition_complete
-      === false
-    ) {
-      incompleteCount++;
-    }
-
-    if (
-      node.leaf_reason
-      === "missing_kanjivg"
-    ) {
-      missingKanjiVGCount++;
-    }
-
-    if (
-      node.variant_of
-      ?.length
-    ) {
-      variantNodeCount++;
-    }
-  }
-
-
-  return {
-    ...sourceGraph,
-
-    selection: {
-      max_jlpt_level:
-        selectedLevel
-    },
-
-    nodes,
-    edges,
-
-    stats: {
-      ...sourceGraph.stats,
-
-      target_count:
-        targetIds.size,
-
-      jlpt_target_counts:
-        jlptTargetCounts,
-
-      node_count:
-        nodes.length,
-
-      edge_count:
-        edges.length,
-
-      leaf_count:
-        leafCount,
-
-      incomplete_decomposition_count:
-        incompleteCount,
-
-      missing_kanjivg_count:
-        missingKanjiVGCount,
-
-      variant_node_count:
-        variantNodeCount,
-
-      max_level:
-        maxGraphLevel,
-
-      level_counts:
-        levelCounts,
-
-      target_level_counts:
-        targetLevelCounts
-    }
-  };
-}
-
-async function loadGraph() {
-  const requestId =
-    ++loadRequestId;
-
-  setStatus("Loading…");
-
-  setLevelButtonsDisabled(true);
-
-  hideTooltip();
-
-  /*
-   * Only one static graph is needed now.
-   */
-  const url =
-    "static-data/graph-n1.json";
-
-  const response =
-    await fetch(
-      url,
-      {
-        cache: "no-cache"
+      async function loadGraph() {
+        const requestId =
+          ++loadRequestId;
+        setStatus("Loading…");
+        setLevelButtonsDisabled(true);
+        hideTooltip();
+        /*
+         * Only one static graph is needed now.
+         */
+        const url = "static-data/graph-n1.json";
+        const response = await fetch(url, {
+          cache: "no-cache"
+        });
+        if (!response.ok) {
+          throw new Error(`Could not load ${url} (${response.status})`);
+        }
+        const newMasterGraph = await response.json();
+        if (requestId !== loadRequestId) {
+          return;
+        }
+        masterGraphData = newMasterGraph;
+        applySelectedLevel();
+        setLevelButtonsDisabled(false);
       }
-    );
 
-  if (!response.ok) {
-    throw new Error(
-      `Could not load ${url} (${response.status})`
-    );
-  }
-
-  const newMasterGraph =
-    await response.json();
-
-  if (
-    requestId !== loadRequestId
-  ) {
-    return;
-  }
-
-  masterGraphData =
-    newMasterGraph;
-
-  applySelectedLevel();
-
-  setLevelButtonsDisabled(false);
-}
-
-function applySelectedLevel() {
-  if (
-    !masterGraphData
-  ) {
-    return;
-  }
-
-  hideTooltip();
-
-  /*
-   * Remember what the user is currently looking at.
-   */
-  const previousFocusId =
-    currentFocusId;
-
-
-  /*
-   * Build the graph for the newly selected JLPT range.
-   */
-  graphData =
-    buildFilteredGraph(
-      masterGraphData,
-      selectedJlptLevel
-    );
-
-  indexGraph();
-
-  /*
-   * Navigation history belongs to the previous JLPT-filtered
-   * graph, so clear it.
-   */
-  viewHistory = [];
-
-  updateBackButton();
-  syncLevelButtons();
-
-
-  /*
-   * If we were focused on a node and that node still exists
-   * in the newly filtered graph, stay focused on it.
-   *
-   * focusNode() will recalculate all prerequisite ancestors
-   * and dependent descendants using the new graph.
-   *
-   * Example:
-   *
-   * N3 view:
-   *
-   *     prerequisites -> 海 -> N3 dependents
-   *
-   * switch to N1:
-   *
-   *     prerequisites -> 海 -> N3/N2/N1 dependents
-   *
-   * without returning to Overview.
-   */
-  if (
-    previousFocusId
-    &&
-    nodesById.has(
-      previousFocusId
-    )
-  ) {
-    currentFocusId =
-      previousFocusId;
-
-    visibleNodeIds =
-      null;
-
-    focusNode(
-      previousFocusId,
-      {
-        recordHistory: false
+      function applySelectedLevel() {
+        if (!masterGraphData) {
+          return;
+        }
+        hideTooltip();
+        /*
+         * Remember what the user is currently looking at.
+         */
+        const previousFocusId = currentFocusId;
+        /*
+         * Build the graph for the newly selected JLPT range.
+         */
+        graphData = buildFilteredGraph(masterGraphData, selectedJlptLevel);
+        indexGraph();
+        /*
+         * Navigation history belongs to the previous JLPT-filtered
+         * graph, so clear it.
+         */
+        viewHistory = [];
+        updateBackButton();
+        syncLevelButtons();
+        /*
+         * If we were focused on a node and that node still exists
+         * in the newly filtered graph, stay focused on it.
+         *
+         * focusNode() will recalculate all prerequisite ancestors
+         * and dependent descendants using the new graph.
+         *
+         * Example:
+         *
+         * N3 view:
+         *
+         *     prerequisites -> 海 -> N3 dependents
+         *
+         * switch to N1:
+         *
+         *     prerequisites -> 海 -> N3/N2/N1 dependents
+         *
+         * without returning to Overview.
+         */
+        if (previousFocusId && nodesById.has(previousFocusId)) {
+          currentFocusId = previousFocusId;
+          visibleNodeIds = null;
+          focusNode(previousFocusId, {
+            recordHistory: false
+          });
+          return;
+        }
+        /*
+         * If the previously focused node no longer exists in the
+         * selected JLPT graph, fall back to Overview.
+         *
+         * For example, this can happen when going from N1 down to N5.
+         */
+        currentFocusId = null;
+        visibleNodeIds = null;
+        renderStats();
+        renderGraph();
+        renderEmptyDetails();
+        const container = document.getElementById("graph-container");
+        container.scrollTo({
+          left: 0,
+          top: 0
+        });
+        setStatus(`${graphData.stats.node_count} nodes`);
       }
-    );
 
-    return;
-  }
-
-
-  /*
-   * If the previously focused node no longer exists in the
-   * selected JLPT graph, fall back to Overview.
-   *
-   * For example, this can happen when going from N1 down to N5.
-   */
-  currentFocusId =
-    null;
-
-  visibleNodeIds =
-    null;
-
-  renderStats();
-  renderGraph();
-  renderEmptyDetails();
-
-  const container =
-    document.getElementById(
-      "graph-container"
-    );
-
-  container.scrollTo({
-    left: 0,
-    top: 0
-  });
-
-  setStatus(
-    `${graphData.stats.node_count} nodes`
-  );
-}
-
-function indexGraph() {
-  nodesById =
-    new Map(
-      graphData.nodes.map(
-        node => [
+      function indexGraph() {
+        nodesById = new Map(graphData.nodes.map(node => [
           node.id,
           node
-        ]
-      )
-    );
-
-  incoming =
-    new Map();
-
-  outgoing =
-    new Map();
-
-  for (
-    const node
-    of graphData.nodes
-  ) {
-    incoming.set(
-      node.id,
-      []
-    );
-
-    outgoing.set(
-      node.id,
-      []
-    );
-  }
-
-  for (
-    const edge
-    of graphData.edges
-  ) {
-    incoming
-      .get(edge.target)
-      ?.push(edge.source);
-
-    outgoing
-      .get(edge.source)
-      ?.push(edge.target);
-  }
-}
-
-
-/* ================================================================
-   Navigation history
-   ================================================================ */
-
-function captureCurrentView() {
-  const container =
-    document.getElementById(
-      "graph-container"
-    );
-
-  return {
-    focusId:
-      currentFocusId,
-
-    scrollLeft:
-      container.scrollLeft,
-
-    scrollTop:
-      container.scrollTop
-  };
-}
-
-
-function pushCurrentViewToHistory() {
-  viewHistory.push(
-    captureCurrentView()
-  );
-
-  /*
-   * No reason for this little app to retain an unlimited history.
-   */
-  if (
-    viewHistory.length > 100
-  ) {
-    viewHistory.shift();
-  }
-
-  updateBackButton();
-}
-
-
-function updateBackButton() {
-  document
-    .getElementById(
-      "back-button"
-    )
-    .disabled =
-      viewHistory.length === 0;
-}
-
-
-function goBack() {
-  if (
-    viewHistory.length === 0
-  ) {
-    return;
-  }
-
-  const state =
-    viewHistory.pop();
-
-  updateBackButton();
-
-  if (
-    state.focusId === null
-  ) {
-    showOverview({
-      recordHistory: false,
-      restoreState: state
-    });
-  }
-  else {
-    focusNode(
-      state.focusId,
-      {
-        recordHistory: false,
-        restoreState: state
+        ]));
+        incoming = new Map();
+        outgoing = new Map();
+        for (const node of graphData.nodes) {
+          incoming.set(node.id,
+            []);
+          outgoing.set(node.id,
+            []);
+        }
+        for (const edge of graphData.edges) {
+          incoming.get(edge.target)?.push(edge.source);
+          outgoing.get(edge.source)?.push(edge.target);
+        }
       }
-    );
-  }
-}
+      /* ================================================================
+         Navigation history
+         ================================================================ */
+      function captureCurrentView() {
+        const container = document.getElementById("graph-container");
+        return {
+          focusId: currentFocusId,
+          scrollLeft: container.scrollLeft,
+          scrollTop: container.scrollTop
+        };
+      }
 
+      function pushCurrentViewToHistory() {
+        viewHistory.push(captureCurrentView());
+        /*
+         * No reason for this little app to retain an unlimited history.
+         */
+        if (viewHistory.length > 100) {
+          viewHistory.shift();
+        }
+        updateBackButton();
+      }
 
-/* ================================================================
-   Statistics
-   ================================================================ */
+      function updateBackButton() {
+        document.getElementById("back-button").disabled = viewHistory.length === 0;
+      }
 
-function renderStats() {
-  if (!graphData) {
-    return;
-  }
-
-  const stats =
-    graphData.stats;
-
-  const selection =
-    graphData.selection;
-
-  const visibleCount =
-    visibleNodeIds
-      ? visibleNodeIds.size
-      : graphData.nodes.length;
-
-  const rows = [
-    [
-      "View",
-      currentFocusId
-        ? `Focus: ${currentFocusId}`
-        : "Overview"
-    ],
-    [
-      "Showing through",
-      selection?.max_jlpt_level
-        ?? selectedJlptLevel
-    ],
-    [
-      "Visible nodes",
-      visibleCount
-    ],
-    [
-      "JLPT targets",
-      stats.target_count
-    ],
-    [
-      "Total graph nodes",
-      stats.node_count
-    ],
-    [
-      "Dependencies",
-      stats.edge_count
-    ],
-    [
-      "Maximum level",
-      stats.max_level
-    ],
-    [
-      "Atomic leaves",
-      stats.leaf_count
-    ],
-    [
-      "Residual/incomplete",
-      stats.incomplete_decomposition_count
-    ],
-    [
-      "Missing SVG",
-      stats.missing_kanjivg_count
-    ]
-  ];
-
-  const container =
-    document.getElementById(
-      "stats"
-    );
-
-  container.innerHTML =
-    rows
-      .map(
-        ([label, value]) => `
-          <div>
+      function goBack() {
+        if (viewHistory.length === 0) {
+          return;
+        }
+        const state = viewHistory.pop();
+        updateBackButton();
+        if (state.focusId === null) {
+          showOverview({
+            recordHistory: false,
+            restoreState: state
+          });
+        } else {
+          focusNode(state.focusId, {
+            recordHistory: false,
+            restoreState: state
+          });
+        }
+      }
+      /* ================================================================
+         Statistics
+         ================================================================ */
+      function renderStats() {
+        if (!graphData) {
+          return;
+        }
+        const stats = graphData.stats;
+        const selection = graphData.selection;
+        const visibleCount = visibleNodeIds ? visibleNodeIds.size : graphData.nodes.length;
+        const rows = [
+          ["View",
+            currentFocusId ? `Focus: ${currentFocusId}` : "Overview"
+          ],
+          ["Showing through",
+            selection?.max_jlpt_level ?? selectedJlptLevel
+          ],
+          ["Visible nodes",
+            visibleCount
+          ],
+          ["JLPT targets",
+            stats.target_count
+          ],
+          ["Total graph nodes",
+            stats.node_count
+          ],
+          ["Dependencies",
+            stats.edge_count
+          ],
+          ["Maximum level",
+            stats.max_level
+          ],
+          ["Atomic leaves",
+            stats.leaf_count
+          ],
+          ["Residual/incomplete",
+            stats.incomplete_decomposition_count
+          ],
+          ["Missing SVG",
+            stats.missing_kanjivg_count
+          ]
+        ];
+        const container = document.getElementById("stats");
+        container.innerHTML = rows.map(
+          ([label, value]) => `
+          
+	<div>
             ${escapeHtml(label)}
           </div>
-
-          <div class="value">
+	<div class="value">
             ${escapeHtml(value)}
           </div>
-        `
-      )
-      .join("");
-}
-
-
-/* ================================================================
-   Layout
-   ================================================================ */
-
-function averagePrerequisitePosition(
-  node,
-  positions
-) {
-  const prerequisites =
-    incoming.get(node.id) ?? [];
-
-  const values =
-    prerequisites
-      .map(
-        id =>
-          positions.get(id)
-      )
-      .filter(
-        value =>
-          value !== undefined
-      );
-
-  if (
-    values.length === 0
-  ) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  return (
-    values.reduce(
-      (sum, value) =>
-        sum + value,
-      0
-    )
-    / values.length
-  );
-}
-
-
-function orderLevels(
-  levels,
-  maxLevel,
-  rowHeight
-) {
-  /*
-   * Hybrid ordering:
-   *
-   * 1. Start with frequency order.
-   * 2. Use barycentric information to reduce edge crossings.
-   * 3. Limit movement so frequency still dominates visually.
-   */
-
-  function frequencyRank(node) {
-    const freq =
-      node.jlpt?.freq;
-
-    if (
-      typeof freq === "number"
-      && Number.isFinite(freq)
-      && freq > 0
-    ) {
-      return freq;
-    }
-
-    return Number.POSITIVE_INFINITY;
-  }
-
-  /*
-   * Initial frequency ordering.
-   */
-  for (
-    const nodes
-    of levels.values()
-  ) {
-    nodes.sort(
-      (a, b) => {
-        const aFreq =
-          frequencyRank(a);
-
-        const bFreq =
-          frequencyRank(b);
-
-        if (
-          aFreq !== bFreq
-        ) {
-          return aFreq - bFreq;
+        `).join("");
+      }
+      /* ================================================================
+         Layout
+         ================================================================ */
+      function averagePrerequisitePosition(node, positions) {
+        const prerequisites = incoming.get(node.id) ?? [];
+        const values = prerequisites.map(id => positions.get(id)).filter(value => value !== undefined);
+        if (values.length === 0) {
+          return Number.MAX_SAFE_INTEGER;
         }
-
-        return a.id.localeCompare(
-          b.id,
-          "ja"
-        );
-      }
-    );
-  }
-
-  /*
-   * Remember each node's original frequency-based position.
-   *
-   * We use this as an anchor so barycentric sorting can't
-   * completely destroy the frequency ordering.
-   */
-  const frequencyPositions =
-    new Map();
-
-  for (
-    const nodes
-    of levels.values()
-  ) {
-    nodes.forEach(
-      (node, index) => {
-        frequencyPositions.set(
-          node.id,
-          index
-        );
-      }
-    );
-  }
-
-  /*
-   * Tuning:
-   *
-   * Higher FREQUENCY_WEIGHT:
-   *   stronger frequency ordering
-   *
-   * Higher BARYCENTRIC_WEIGHT:
-   *   fewer edge crossings
-   *
-   * MAX_POSITION_SHIFT:
-   *   maximum number of rows a node is allowed to move
-   *   away from its original frequency position.
-   */
-  const FREQUENCY_WEIGHT = 0.70;
-  const BARYCENTRIC_WEIGHT = 0.30;
-
-  const MAX_POSITION_SHIFT = 4;
-
-  /*
-   * A few passes are enough.
-   */
-  for (
-    let iteration = 0;
-    iteration < 4;
-    iteration++
-  ) {
-    for (
-      let level = 1;
-      level <= maxLevel;
-      level++
-    ) {
-      const nodes =
-        levels.get(level);
-
-      if (
-        !nodes
-        || nodes.length < 2
-      ) {
-        continue;
+        return (values.reduce(
+          (sum, value) => sum + value, 0) / values.length);
       }
 
-      /*
-       * Current positions of all nodes in earlier columns.
-       */
-      const previousPositions =
-        new Map();
-
-      for (
-        const [otherLevel, otherNodes]
-        of levels
-      ) {
-        if (
-          otherLevel >= level
-        ) {
-          continue;
-        }
-
-        otherNodes.forEach(
-          (node, index) => {
-            previousPositions.set(
-              node.id,
-              index
-            );
+      function orderLevels(levels, maxLevel, rowHeight) {
+        /*
+         * Hybrid ordering:
+         *
+         * 1. Start with frequency order.
+         * 2. Use barycentric information to reduce edge crossings.
+         * 3. Limit movement so frequency still dominates visually.
+         */
+        function frequencyRank(node) {
+          const freq = node.jlpt?.freq;
+          if (typeof freq === "number" && Number.isFinite(freq) && freq > 0) {
+            return freq;
           }
-        );
-      }
-
-      /*
-       * Calculate a hybrid target position for each node.
-       */
-      const scored =
-        nodes.map(
-          (node, currentIndex) => {
-            const frequencyPosition =
-              frequencyPositions.get(
-                node.id
-              );
-
-            const prerequisites =
-              incoming.get(
-                node.id
-              ) ?? [];
-
-            const prerequisitePositions =
-              prerequisites
-                .map(
-                  id =>
-                    previousPositions.get(id)
-                )
-                .filter(
-                  value =>
-                    value !== undefined
-                );
-
-            let barycenter =
-              currentIndex;
-
-            if (
-              prerequisitePositions.length
-            ) {
-              barycenter =
-                prerequisitePositions.reduce(
-                  (sum, value) =>
-                    sum + value,
-                  0
-                )
-                /
-                prerequisitePositions.length;
+          return Number.POSITIVE_INFINITY;
+        }
+        /*
+         * Initial frequency ordering.
+         */
+        for (const nodes of levels.values()) {
+          nodes.sort(
+            (a, b) => {
+              const aFreq = frequencyRank(a);
+              const bFreq = frequencyRank(b);
+              if (aFreq !== bFreq) {
+                return aFreq - bFreq;
+              }
+              return a.id.localeCompare(b.id, "ja");
+            });
+        }
+        /*
+         * Remember each node's original frequency-based position.
+         *
+         * We use this as an anchor so barycentric sorting can't
+         * completely destroy the frequency ordering.
+         */
+        const frequencyPositions = new Map();
+        for (const nodes of levels.values()) {
+          nodes.forEach(
+            (node, index) => {
+              frequencyPositions.set(node.id, index);
+            });
+        }
+        /*
+         * Tuning:
+         *
+         * Higher FREQUENCY_WEIGHT:
+         *   stronger frequency ordering
+         *
+         * Higher BARYCENTRIC_WEIGHT:
+         *   fewer edge crossings
+         *
+         * MAX_POSITION_SHIFT:
+         *   maximum number of rows a node is allowed to move
+         *   away from its original frequency position.
+         */
+        const FREQUENCY_WEIGHT = 0.70;
+        const BARYCENTRIC_WEIGHT = 0.30;
+        const MAX_POSITION_SHIFT = 4;
+        /*
+         * A few passes are enough.
+         */
+        for (let iteration = 0; iteration < 4; iteration++) {
+          for (let level = 1; level <= maxLevel; level++) {
+            const nodes = levels.get(level);
+            if (!nodes || nodes.length < 2) {
+              continue;
             }
-
             /*
-             * Blend frequency order with barycentric position.
+             * Current positions of all nodes in earlier columns.
              */
-            const blendedPosition =
-              frequencyPosition
-                * FREQUENCY_WEIGHT
-              +
-              barycenter
-                * BARYCENTRIC_WEIGHT;
-
+            const previousPositions = new Map();
+            for (const [otherLevel, otherNodes] of levels) {
+              if (otherLevel >= level) {
+                continue;
+              }
+              otherNodes.forEach(
+                (node, index) => {
+                  previousPositions.set(node.id, index);
+                });
+            }
             /*
-             * Prevent a node from moving too far from its
-             * frequency position.
+             * Calculate a hybrid target position for each node.
              */
-            const minPosition =
-              frequencyPosition
-              - MAX_POSITION_SHIFT;
-
-            const maxPosition =
-              frequencyPosition
-              + MAX_POSITION_SHIFT;
-
-            const constrainedPosition =
-              Math.max(
-                minPosition,
-                Math.min(
-                  maxPosition,
-                  blendedPosition
-                )
-              );
-
-            return {
-              node,
-              constrainedPosition,
-              frequencyPosition
-            };
+            const scored = nodes.map(
+              (node, currentIndex) => {
+                const frequencyPosition = frequencyPositions.get(node.id);
+                const prerequisites = incoming.get(node.id) ?? [];
+                const prerequisitePositions = prerequisites.map(id => previousPositions.get(id)).filter(value => value !== undefined);
+                let barycenter = currentIndex;
+                if (prerequisitePositions.length) {
+                  barycenter = prerequisitePositions.reduce(
+                    (sum, value) => sum + value, 0) / prerequisitePositions.length;
+                }
+                /*
+                 * Blend frequency order with barycentric position.
+                 */
+                const blendedPosition = frequencyPosition * FREQUENCY_WEIGHT + barycenter * BARYCENTRIC_WEIGHT;
+                /*
+                 * Prevent a node from moving too far from its
+                 * frequency position.
+                 */
+                const minPosition = frequencyPosition - MAX_POSITION_SHIFT;
+                const maxPosition = frequencyPosition + MAX_POSITION_SHIFT;
+                const constrainedPosition = Math.max(minPosition, Math.min(maxPosition, blendedPosition));
+                return {
+                  node,
+                  constrainedPosition,
+                  frequencyPosition
+                };
+              });
+            scored.sort(
+              (a, b) => {
+                if (a.constrainedPosition !== b.constrainedPosition) {
+                  return (a.constrainedPosition - b.constrainedPosition);
+                }
+                /*
+                 * Tie-break back toward frequency order.
+                 */
+                if (a.frequencyPosition !== b.frequencyPosition) {
+                  return (a.frequencyPosition - b.frequencyPosition);
+                }
+                return a.node.id.localeCompare(b.node.id, "ja");
+              });
+            levels.set(level, scored.map(item => item.node));
           }
-        );
-
-      scored.sort(
-        (a, b) => {
-          if (
-            a.constrainedPosition
-            !== b.constrainedPosition
-          ) {
-            return (
-              a.constrainedPosition
-              - b.constrainedPosition
-            );
-          }
-
-          /*
-           * Tie-break back toward frequency order.
-           */
-          if (
-            a.frequencyPosition
-            !== b.frequencyPosition
-          ) {
-            return (
-              a.frequencyPosition
-              - b.frequencyPosition
-            );
-          }
-
-          return a.node.id.localeCompare(
-            b.node.id,
-            "ja"
-          );
         }
-      );
-
-      levels.set(
-        level,
-        scored.map(
-          item => item.node
-        )
-      );
-    }
-  }
-}
-
-
-/* ================================================================
-   SVG definitions
-   ================================================================ */
-
-function addSvgDefinitions(svg) {
-  const defs =
-    svgElement("defs");
-
-  const marker =
-    svgElement(
-      "marker",
-      {
-        id: "arrowhead",
-
-        markerWidth: 8,
-        markerHeight: 8,
-
-        refX: 7,
-        refY: 4,
-
-        orient: "auto",
-
-        markerUnits:
-          "strokeWidth"
       }
-    );
-
-  const arrow =
-    svgElement(
-      "path",
-      {
-        d:
-          "M 0 0 L 8 4 L 0 8 z",
-
-        fill:
-          "#75869a"
+      /* ================================================================
+         SVG definitions
+         ================================================================ */
+      function addSvgDefinitions(svg) {
+        const defs = svgElement("defs");
+        const marker = svgElement("marker", {
+          id: "arrowhead",
+          markerWidth: 8,
+          markerHeight: 8,
+          refX: 7,
+          refY: 4,
+          orient: "auto",
+          markerUnits: "strokeWidth"
+        });
+        const arrow = svgElement("path", {
+          d: "M 0 0 L 8 4 L 0 8 z",
+          fill: "#75869a"
+        });
+        marker.appendChild(arrow);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
       }
-    );
-
-  marker.appendChild(
-    arrow
-  );
-
-  defs.appendChild(
-    marker
-  );
-
-  svg.appendChild(
-    defs
-  );
-}
-
-
-/* ================================================================
-   Edge routing
-   ================================================================ */
-
-function makeNormalEdgePath(
-  source,
-  target,
-  nodeWidth
-) {
-  const startX =
-    source.x
-    + nodeWidth / 2;
-
-  const startY =
-    source.y;
-
-  const endX =
-    target.x
-    - nodeWidth / 2;
-
-  const endY =
-    target.y;
-
-  const distance =
-    endX - startX;
-
-  const curve =
-    Math.max(
-      35,
-      distance * 0.42
-    );
-
-  return [
-    `M ${startX} ${startY}`,
-
-    `C ${
+      /* ================================================================
+         Edge routing
+         ================================================================ */
+      function makeNormalEdgePath(source, target, nodeWidth) {
+        const startX = source.x + nodeWidth / 2;
+        const startY = source.y;
+        const endX = target.x - nodeWidth / 2;
+        const endY = target.y;
+        const distance = endX - startX;
+        const curve = Math.max(35, distance * 0.42);
+        return [`M ${startX} ${startY}`, `C ${
       startX + curve
-    } ${startY},`,
-
-    `${
+    } ${startY},`, `${
       endX - curve
-    } ${endY},`,
+    } ${endY},`, `${endX} ${endY}`].join(" ");
+      }
 
-    `${endX} ${endY}`
-  ].join(" ");
-}
+      function centeredSlotOffset(index, spacing, maximum) {
+        /*
+         * Produces:
+         *
+         *   0, -7, +7, -14, +14, -21, +21...
+         *
+         * so multiple edges fan out symmetrically.
+         */
+        if (index === 0) {
+          return 0;
+        }
+        const step = Math.ceil(index / 2);
+        const direction = index % 2 === 1 ? -1 : 1;
+        return Math.max(-maximum, Math.min(maximum, direction * step * spacing));
+      }
 
+      function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+        return (Math.max(aStart, bStart) <= Math.min(aEnd, bEnd));
+      }
 
-function centeredSlotOffset(
-  index,
-  spacing,
-  maximum
-) {
-  /*
-   * Produces:
-   *
-   *   0, -7, +7, -14, +14, -21, +21...
-   *
-   * so multiple edges fan out symmetrically.
-   */
-  if (index === 0) {
-    return 0;
-  }
-
-  const step =
-    Math.ceil(index / 2);
-
-  const direction =
-    index % 2 === 1
-      ? -1
-      : 1;
-
-  return Math.max(
-    -maximum,
-    Math.min(
-      maximum,
-      direction * step * spacing
-    )
-  );
-}
-
-
-function rangesOverlap(
-  aStart,
-  aEnd,
-  bStart,
-  bEnd
-) {
-  return (
-    Math.max(aStart, bStart)
-    <=
-    Math.min(aEnd, bEnd)
-  );
-}
-
-
-function findFreeHorizontalLane(
-  baseY,
-  direction,
-  xStart,
-  xEnd,
-  plannedRoutes,
-  graphHeight
-) {
-  /*
-   * direction:
-   *
-   *   -1 = search upward
-   *   +1 = search downward
-   */
-
-  for (
-    let lane = 0;
-    lane < 20;
-    lane++
-  ) {
-    const y =
-      baseY
-      + direction
-        * lane
-        * LONG_EDGE_LANE_SPACING;
-
-    if (
-      y < LONG_EDGE_GRAPH_MARGIN
-      ||
-      y > (
-        graphHeight
-        - LONG_EDGE_GRAPH_MARGIN
-      )
-    ) {
-      continue;
-    }
-
-    const conflicts =
-      plannedRoutes.some(
-        route => {
-          if (
-            !rangesOverlap(
-              xStart,
-              xEnd,
-              route.horizontalStart,
-              route.horizontalEnd
-            )
-          ) {
-            return false;
+      function findFreeHorizontalLane(baseY, direction, xStart, xEnd, plannedRoutes, graphHeight) {
+        /*
+         * direction:
+         *
+         *   -1 = search upward
+         *   +1 = search downward
+         */
+        for (let lane = 0; lane < 20; lane++) {
+          const y = baseY + direction * lane * LONG_EDGE_LANE_SPACING;
+          if (y < LONG_EDGE_GRAPH_MARGIN || y > (graphHeight - LONG_EDGE_GRAPH_MARGIN)) {
+            continue;
           }
-
-          return (
-            Math.abs(
-              route.routeY - y
-            )
-            <
-            LONG_EDGE_LANE_SPACING
-              * 0.8
-          );
+          const conflicts = plannedRoutes.some(route => {
+            if (!rangesOverlap(xStart, xEnd, route.horizontalStart, route.horizontalEnd)) {
+              return false;
+            }
+            return (Math.abs(route.routeY - y) < LONG_EDGE_LANE_SPACING * 0.8);
+          });
+          if (!conflicts) {
+            return y;
+          }
         }
-      );
+        return null;
+      }
 
-    if (!conflicts) {
-      return y;
-    }
-  }
-
-  return null;
-}
-
-
-function planLongEdgeRoutes(
-  visibleEdges,
-  levels,
-  nodeWidth,
-  nodeHeight,
-  graphHeight
-) {
-  const routes =
-    new Map();
-
-  /*
-   * These counters allocate distinct vertical tracks in the
-   * gutters between columns.
-   */
-  const exitGutterCounts =
-    new Map();
-
-  const enterGutterCounts =
-    new Map();
-
-  /*
-   * These counters give edges leaving/entering the same node
-   * slightly different attachment points.
-   */
-  const sourcePortCounts =
-    new Map();
-
-  const targetPortCounts =
-    new Map();
-
-  const plannedRoutes = [];
-
-  const longEdges =
-    visibleEdges
-      .filter(
-        edge => {
-          const sourceNode =
-            nodesById.get(
-              edge.source
-            );
-
-          const targetNode =
-            nodesById.get(
-              edge.target
-            );
-
-          return (
-            sourceNode
-            &&
-            targetNode
-            &&
-            (
-              targetNode.level
-              - sourceNode.level
-            ) > 1
-          );
-        }
-      )
-      .sort(
-        (a, b) => {
-          const aSource =
-            nodesById.get(
-              a.source
-            );
-
-          const aTarget =
-            nodesById.get(
-              a.target
-            );
-
-          const bSource =
-            nodesById.get(
-              b.source
-            );
-
-          const bTarget =
-            nodesById.get(
-              b.target
-            );
-
+      function planLongEdgeRoutes(visibleEdges, levels, nodeWidth, nodeHeight, graphHeight) {
+        const routes = new Map();
+        /*
+         * These counters allocate distinct vertical tracks in the
+         * gutters between columns.
+         */
+        const exitGutterCounts = new Map();
+        const enterGutterCounts = new Map();
+        /*
+         * These counters give edges leaving/entering the same node
+         * slightly different attachment points.
+         */
+        const sourcePortCounts = new Map();
+        const targetPortCounts = new Map();
+        const plannedRoutes = [];
+        const longEdges = visibleEdges.filter(edge => {
+          const sourceNode = nodesById.get(edge.source);
+          const targetNode = nodesById.get(edge.target);
+          return (sourceNode && targetNode && (targetNode.level - sourceNode.level) > 1);
+        }).sort(
+          (a, b) => {
+            const aSource = nodesById.get(a.source);
+            const aTarget = nodesById.get(a.target);
+            const bSource = nodesById.get(b.source);
+            const bTarget = nodesById.get(b.target);
+            /*
+             * Shorter skipped spans get the closest lanes first.
+             */
+            const aSpan = aTarget.level - aSource.level;
+            const bSpan = bTarget.level - bSource.level;
+            return aSpan - bSpan;
+          });
+        for (const edge of longEdges) {
+          const sourceNode = nodesById.get(edge.source);
+          const targetNode = nodesById.get(edge.target);
+          const source = nodePositions.get(edge.source);
+          const target = nodePositions.get(edge.target);
+          if (!sourceNode || !targetNode || !source || !target) {
+            continue;
+          }
           /*
-           * Shorter skipped spans get the closest lanes first.
+           * ------------------------------------------------------------
+           * Different ports on the source/target node.
+           * ------------------------------------------------------------
            */
-          const aSpan =
-            aTarget.level
-            - aSource.level;
-
-          const bSpan =
-            bTarget.level
-            - bSource.level;
-
-          return aSpan - bSpan;
+          const sourcePortIndex = sourcePortCounts.get(edge.source) ?? 0;
+          sourcePortCounts.set(edge.source, sourcePortIndex + 1);
+          const targetPortIndex = targetPortCounts.get(edge.target) ?? 0;
+          targetPortCounts.set(edge.target, targetPortIndex + 1);
+          const sourcePortOffset = centeredSlotOffset(sourcePortIndex, LONG_EDGE_PORT_SPACING, LONG_EDGE_MAX_PORT_OFFSET);
+          const targetPortOffset = centeredSlotOffset(targetPortIndex, LONG_EDGE_PORT_SPACING, LONG_EDGE_MAX_PORT_OFFSET);
+          /*
+           * ------------------------------------------------------------
+           * Different vertical tracks in the source and target gutters.
+           * ------------------------------------------------------------
+           */
+          const exitKey = sourceNode.level;
+          const exitIndex = exitGutterCounts.get(exitKey) ?? 0;
+          exitGutterCounts.set(exitKey, exitIndex + 1);
+          const enterKey = targetNode.level;
+          const enterIndex = enterGutterCounts.get(enterKey) ?? 0;
+          enterGutterCounts.set(enterKey, enterIndex + 1);
+          const exitSlot = exitIndex % LONG_EDGE_MAX_GUTTER_SLOTS;
+          const enterSlot = enterIndex % LONG_EDGE_MAX_GUTTER_SLOTS;
+          const startX = source.x + nodeWidth / 2;
+          const endX = target.x - nodeWidth / 2;
+          const exitX = startX + LONG_EDGE_GUTTER_BASE + exitSlot * LONG_EDGE_GUTTER_SPACING;
+          const enterX = endX - LONG_EDGE_GUTTER_BASE - enterSlot * LONG_EDGE_GUTTER_SPACING;
+          /*
+           * ------------------------------------------------------------
+           * Find the actual occupied vertical extent of all columns the
+           * edge is skipping.
+           *
+           * This lets us route just above/below those nodes instead of
+           * travelling all the way to the top of the SVG.
+           * ------------------------------------------------------------
+           */
+          let obstacleTop = Number.POSITIVE_INFINITY;
+          let obstacleBottom = Number.NEGATIVE_INFINITY;
+          for (let level = sourceNode.level + 1; level < targetNode.level; level++) {
+            const intermediateNodes = levels.get(level) ?? [];
+            for (const node of intermediateNodes) {
+              const position = nodePositions.get(node.id);
+              if (!position) {
+                continue;
+              }
+              obstacleTop = Math.min(obstacleTop, position.y - nodeHeight / 2);
+              obstacleBottom = Math.max(obstacleBottom, position.y + nodeHeight / 2);
+            }
+          }
+          /*
+           * Empty skipped columns are unusual, but handle them cleanly.
+           */
+          if (!Number.isFinite(obstacleTop)) {
+            obstacleTop = Math.min(source.y, target.y) - nodeHeight / 2;
+            obstacleBottom = Math.max(source.y, target.y) + nodeHeight / 2;
+          }
+          const topBaseY = obstacleTop - LONG_EDGE_CLEARANCE;
+          const bottomBaseY = obstacleBottom + LONG_EDGE_CLEARANCE;
+          /*
+           * Find an unused horizontal lane both above and below.
+           */
+          const topLaneY = findFreeHorizontalLane(topBaseY, -1, exitX, enterX, plannedRoutes, graphHeight);
+          const bottomLaneY = findFreeHorizontalLane(bottomBaseY, 1, exitX, enterX, plannedRoutes, graphHeight);
+          /*
+           * Choose whichever route requires less vertical travel.
+           *
+           * Congested lanes naturally become more expensive because
+           * findFreeHorizontalLane() pushes them farther away.
+           */
+          const sourcePortY = source.y + sourcePortOffset;
+          const targetPortY = target.y + targetPortOffset;
+          const topCost = topLaneY === null ? Number.POSITIVE_INFINITY : (Math.abs(sourcePortY - topLaneY) + Math.abs(targetPortY - topLaneY));
+          const bottomCost = bottomLaneY === null ? Number.POSITIVE_INFINITY : (Math.abs(sourcePortY - bottomLaneY) + Math.abs(targetPortY - bottomLaneY));
+          let routeY;
+          if (topCost <= bottomCost) {
+            routeY = topLaneY ?? bottomLaneY;
+          } else {
+            routeY = bottomLaneY ?? topLaneY;
+          }
+          /*
+           * Defensive fallback.
+           */
+          if (routeY === null || routeY === undefined) {
+            routeY = Math.max(LONG_EDGE_GRAPH_MARGIN, topBaseY);
+          }
+          const route = {
+            sourcePortOffset,
+            targetPortOffset,
+            exitX,
+            enterX,
+            routeY,
+            horizontalStart: Math.min(exitX, enterX),
+            horizontalEnd: Math.max(exitX, enterX)
+          };
+          const key = `${edge.source}\u0000${edge.target}`;
+          routes.set(key, route);
+          plannedRoutes.push(route);
         }
-      );
-
-  for (
-    const edge
-    of longEdges
-  ) {
-    const sourceNode =
-      nodesById.get(
-        edge.source
-      );
-
-    const targetNode =
-      nodesById.get(
-        edge.target
-      );
-
-    const source =
-      nodePositions.get(
-        edge.source
-      );
-
-    const target =
-      nodePositions.get(
-        edge.target
-      );
-
-    if (
-      !sourceNode
-      || !targetNode
-      || !source
-      || !target
-    ) {
-      continue;
-    }
-
-    /*
-     * ------------------------------------------------------------
-     * Different ports on the source/target node.
-     * ------------------------------------------------------------
-     */
-
-    const sourcePortIndex =
-      sourcePortCounts.get(
-        edge.source
-      ) ?? 0;
-
-    sourcePortCounts.set(
-      edge.source,
-      sourcePortIndex + 1
-    );
-
-    const targetPortIndex =
-      targetPortCounts.get(
-        edge.target
-      ) ?? 0;
-
-    targetPortCounts.set(
-      edge.target,
-      targetPortIndex + 1
-    );
-
-    const sourcePortOffset =
-      centeredSlotOffset(
-        sourcePortIndex,
-        LONG_EDGE_PORT_SPACING,
-        LONG_EDGE_MAX_PORT_OFFSET
-      );
-
-    const targetPortOffset =
-      centeredSlotOffset(
-        targetPortIndex,
-        LONG_EDGE_PORT_SPACING,
-        LONG_EDGE_MAX_PORT_OFFSET
-      );
-
-    /*
-     * ------------------------------------------------------------
-     * Different vertical tracks in the source and target gutters.
-     * ------------------------------------------------------------
-     */
-
-    const exitKey =
-      sourceNode.level;
-
-    const exitIndex =
-      exitGutterCounts.get(
-        exitKey
-      ) ?? 0;
-
-    exitGutterCounts.set(
-      exitKey,
-      exitIndex + 1
-    );
-
-    const enterKey =
-      targetNode.level;
-
-    const enterIndex =
-      enterGutterCounts.get(
-        enterKey
-      ) ?? 0;
-
-    enterGutterCounts.set(
-      enterKey,
-      enterIndex + 1
-    );
-
-    const exitSlot =
-      exitIndex
-      % LONG_EDGE_MAX_GUTTER_SLOTS;
-
-    const enterSlot =
-      enterIndex
-      % LONG_EDGE_MAX_GUTTER_SLOTS;
-
-    const startX =
-      source.x
-      + nodeWidth / 2;
-
-    const endX =
-      target.x
-      - nodeWidth / 2;
-
-    const exitX =
-      startX
-      + LONG_EDGE_GUTTER_BASE
-      + exitSlot
-        * LONG_EDGE_GUTTER_SPACING;
-
-    const enterX =
-      endX
-      - LONG_EDGE_GUTTER_BASE
-      - enterSlot
-        * LONG_EDGE_GUTTER_SPACING;
-
-    /*
-     * ------------------------------------------------------------
-     * Find the actual occupied vertical extent of all columns the
-     * edge is skipping.
-     *
-     * This lets us route just above/below those nodes instead of
-     * travelling all the way to the top of the SVG.
-     * ------------------------------------------------------------
-     */
-
-    let obstacleTop =
-      Number.POSITIVE_INFINITY;
-
-    let obstacleBottom =
-      Number.NEGATIVE_INFINITY;
-
-    for (
-      let level =
-        sourceNode.level + 1;
-
-      level < targetNode.level;
-
-      level++
-    ) {
-      const intermediateNodes =
-        levels.get(level)
-        ?? [];
-
-      for (
-        const node
-        of intermediateNodes
-      ) {
-        const position =
-          nodePositions.get(
-            node.id
-          );
-
-        if (!position) {
-          continue;
-        }
-
-        obstacleTop =
-          Math.min(
-            obstacleTop,
-            position.y
-              - nodeHeight / 2
-          );
-
-        obstacleBottom =
-          Math.max(
-            obstacleBottom,
-            position.y
-              + nodeHeight / 2
-          );
+        return routes;
       }
-    }
 
-    /*
-     * Empty skipped columns are unusual, but handle them cleanly.
-     */
-    if (
-      !Number.isFinite(
-        obstacleTop
-      )
-    ) {
-      obstacleTop =
-        Math.min(
-          source.y,
-          target.y
-        )
-        - nodeHeight / 2;
-
-      obstacleBottom =
-        Math.max(
-          source.y,
-          target.y
-        )
-        + nodeHeight / 2;
-    }
-
-    const topBaseY =
-      obstacleTop
-      - LONG_EDGE_CLEARANCE;
-
-    const bottomBaseY =
-      obstacleBottom
-      + LONG_EDGE_CLEARANCE;
-
-    /*
-     * Find an unused horizontal lane both above and below.
-     */
-    const topLaneY =
-      findFreeHorizontalLane(
-        topBaseY,
-        -1,
-        exitX,
-        enterX,
-        plannedRoutes,
-        graphHeight
-      );
-
-    const bottomLaneY =
-      findFreeHorizontalLane(
-        bottomBaseY,
-        1,
-        exitX,
-        enterX,
-        plannedRoutes,
-        graphHeight
-      );
-
-    /*
-     * Choose whichever route requires less vertical travel.
-     *
-     * Congested lanes naturally become more expensive because
-     * findFreeHorizontalLane() pushes them farther away.
-     */
-    const sourcePortY =
-      source.y
-      + sourcePortOffset;
-
-    const targetPortY =
-      target.y
-      + targetPortOffset;
-
-    const topCost =
-      topLaneY === null
-        ? Number.POSITIVE_INFINITY
-        : (
-            Math.abs(
-              sourcePortY
-              - topLaneY
-            )
-            +
-            Math.abs(
-              targetPortY
-              - topLaneY
-            )
-          );
-
-    const bottomCost =
-      bottomLaneY === null
-        ? Number.POSITIVE_INFINITY
-        : (
-            Math.abs(
-              sourcePortY
-              - bottomLaneY
-            )
-            +
-            Math.abs(
-              targetPortY
-              - bottomLaneY
-            )
-          );
-
-    let routeY;
-
-    if (
-      topCost <= bottomCost
-    ) {
-      routeY =
-        topLaneY
-        ?? bottomLaneY;
-    }
-    else {
-      routeY =
-        bottomLaneY
-        ?? topLaneY;
-    }
-
-    /*
-     * Defensive fallback.
-     */
-    if (
-      routeY === null
-      || routeY === undefined
-    ) {
-      routeY =
-        Math.max(
-          LONG_EDGE_GRAPH_MARGIN,
-          topBaseY
-        );
-    }
-
-    const route = {
-      sourcePortOffset,
-      targetPortOffset,
-
-      exitX,
-      enterX,
-
-      routeY,
-
-      horizontalStart:
-        Math.min(
-          exitX,
-          enterX
-        ),
-
-      horizontalEnd:
-        Math.max(
-          exitX,
-          enterX
-        )
-    };
-
-    const key =
-      `${edge.source}\u0000${edge.target}`;
-
-    routes.set(
-      key,
-      route
-    );
-
-    plannedRoutes.push(
-      route
-    );
-  }
-
-  return routes;
-}
-
-
-function makeLongEdgePath(
-  source,
-  target,
-  nodeWidth,
-  route
-) {
-  const startX =
-    source.x
-    + nodeWidth / 2;
-
-  const startY =
-    source.y
-    + route.sourcePortOffset;
-
-  const endX =
-    target.x
-    - nodeWidth / 2;
-
-  const endY =
-    target.y
-    + route.targetPortOffset;
-
-  const exitX =
-    route.exitX;
-
-  const enterX =
-    route.enterX;
-
-  const routeY =
-    route.routeY;
-
-  /*
-   * Short curves fan the lines apart immediately after leaving
-   * the node, followed by distinct vertical and horizontal tracks.
-   */
-  return [
-    `M ${startX} ${startY}`,
-
-    `C ${
+      function makeLongEdgePath(source, target, nodeWidth, route) {
+        const startX = source.x + nodeWidth / 2;
+        const startY = source.y + route.sourcePortOffset;
+        const endX = target.x - nodeWidth / 2;
+        const endY = target.y + route.targetPortOffset;
+        const exitX = route.exitX;
+        const enterX = route.enterX;
+        const routeY = route.routeY;
+        /*
+         * Short curves fan the lines apart immediately after leaving
+         * the node, followed by distinct vertical and horizontal tracks.
+         */
+        return [`M ${startX} ${startY}`, `C ${
       startX + 8
-    } ${startY},`,
-
-    `${
+    } ${startY},`, `${
       exitX - 8
-    } ${startY},`,
-
-    `${exitX} ${startY}`,
-
-    `L ${exitX} ${routeY}`,
-
-    `L ${enterX} ${routeY}`,
-
-    `L ${enterX} ${endY}`,
-
-    `C ${
+    } ${startY},`, `${exitX} ${startY}`, `L ${exitX} ${routeY}`, `L ${enterX} ${routeY}`, `L ${enterX} ${endY}`, `C ${
       enterX + 8
-    } ${endY},`,
-
-    `${
+    } ${endY},`, `${
       endX - 8
-    } ${endY},`,
-
-    `${endX} ${endY}`
-  ].join(" ");
-}
-
-/* ================================================================
-   Graph rendering
-   ================================================================ */
-
-function renderGraph(
-  visibleIds = visibleNodeIds
-) {
-  const svg =
-    document.getElementById(
-      "graph"
-    );
-
-  svg.innerHTML = "";
-
-  nodeElements.clear();
-  edgeElements = [];
-  nodePositions.clear();
-
-  addSvgDefinitions(svg);
-
-  const visibleNodes =
-    graphData.nodes.filter(
-      node =>
-        !visibleIds
-        || visibleIds.has(
-          node.id
-        )
-    );
-
-  if (
-    visibleNodes.length === 0
-  ) {
-    return;
-  }
-
-  const visibleEdges =
-    graphData.edges.filter(
-      edge =>
-        !visibleIds
-        || (
-          visibleIds.has(
-            edge.source
-          )
-          &&
-          visibleIds.has(
-            edge.target
-          )
-        )
-    );
-
-  const maxLevel =
-    Math.max(
-      ...visibleNodes.map(
-        node => node.level
-      )
-    );
-
-  const levels =
-    new Map();
-
-  for (
-    let level = 0;
-    level <= maxLevel;
-    level++
-  ) {
-    levels.set(
-      level,
-      []
-    );
-  }
-
-  for (
-    const node
-    of visibleNodes
-  ) {
-    levels
-      .get(node.level)
-      .push(node);
-  }
-
-  const rowHeight =
-    getRowHeight();
-
-  const columnWidth =
-    getColumnWidth();
-
-  const nodeWidth =
-    getNodeWidth();
-    
-  const nodeHeight =
-    getNodeHeight();
-
-  orderLevels(
-    levels,
-    maxLevel,
-    rowHeight
-  );
-
-  /*
-   * We no longer reserve a huge corridor at the top.
-   *
-   * Long edges find local lanes around the nodes they actually
-   * need to skip.
-   */
-  const topPadding =
-    BASE_TOP_PADDING;
-  
-  const maximumNodes =
-    Math.max(
-      1,
-      ...[...levels.values()]
-        .map(
-          nodes => nodes.length
-        )
-    );
-
-  const graphHeight =
-    topPadding
-    + maximumNodes * rowHeight
-    + BOTTOM_PADDING;
-
-  const graphWidth =
-    COLUMN_PADDING * 2
-    + (
-        maxLevel + 1
-      )
-      * columnWidth;
-
-  svg.setAttribute(
-    "width",
-    graphWidth
-  );
-
-  svg.setAttribute(
-    "height",
-    graphHeight
-  );
-
-  svg.setAttribute(
-    "viewBox",
-    `0 0 ${graphWidth} ${graphHeight}`
-  );
-
-  /*
-   * Final node coordinates.
-   */
-  for (
-    let level = 0;
-    level <= maxLevel;
-    level++
-  ) {
-    const nodes =
-      levels.get(level);
-
-    const columnHeight =
-      nodes.length
-      * rowHeight;
-
-    const availableHeight =
-      maximumNodes
-      * rowHeight;
-
-    const offset =
-      currentFocusId
-        ? (
-            availableHeight
-            - columnHeight
-          ) / 2
-        : 0;
-
-    nodes.forEach(
-      (node, index) => {
-        const x =
-          COLUMN_PADDING
-          + level
-            * columnWidth
-          + columnWidth / 2;
-
-        const y =
-          topPadding
-          + offset
-          + index
-            * rowHeight
-          + rowHeight / 2;
-
-        nodePositions.set(
-          node.id,
-          {x, y}
-        );
+    } ${endY},`, `${endX} ${endY}`].join(" ");
       }
-    );
-  }
-
-  const longEdgeRoutes =
-    currentFocusId
-      ? planLongEdgeRoutes(
-          visibleEdges,
-          levels,
-          nodeWidth,
-          nodeHeight,
-          graphHeight
-        )
-      : new Map();
-
-  renderColumnBackgrounds(
-    svg,
-    levels,
-    graphHeight,
-    maxLevel,
-    columnWidth
-  );
-
-  /*
-   * Edges first, nodes second.
-   */
-  for (
-    const edge
-    of visibleEdges
-  ) {
-    const source =
-      nodePositions.get(
-        edge.source
-      );
-  
-    const target =
-      nodePositions.get(
-        edge.target
-      );
-  
-    if (
-      !source
-      || !target
-    ) {
-      continue;
-    }
-  
-    const sourceNode =
-      nodesById.get(
-        edge.source
-      );
-  
-    const targetNode =
-      nodesById.get(
-        edge.target
-      );
-  
-    const isLong =
-      Boolean(
-        currentFocusId
-        && sourceNode
-        && targetNode
-        && (
-          targetNode.level
-          - sourceNode.level
-        ) > 1
-      );
-  
-    let pathData;
-  
-    if (isLong) {
-      const routeKey =
-        `${edge.source}\u0000${edge.target}`;
-  
-      const route =
-        longEdgeRoutes.get(
-          routeKey
-        );
-  
-      if (route) {
-        pathData =
-          makeLongEdgePath(
-            source,
-            target,
-            nodeWidth,
-            route
-          );
-      }
-      else {
-        pathData =
-          makeNormalEdgePath(
-            source,
-            target,
-            nodeWidth
-          );
-      }
-    }
-    else {
-      pathData =
-        makeNormalEdgePath(
-          source,
-          target,
-          nodeWidth
-        );
-    }
-  
-    const classes = [
-      "edge"
-    ];
-  
-    if (
-      currentFocusId
-    ) {
-      classes.push(
-        "active"
-      );
-    }
-  
-    if (isLong) {
-      classes.push(
-        "long-edge"
-      );
-    }
-  
-    const path =
-      svgElement(
-        "path",
-        {
-          class:
-            classes.join(" "),
-  
-          d:
-            pathData,
-  
-          "marker-end":
-            "url(#arrowhead)"
+      /* ================================================================
+         Graph rendering
+         ================================================================ */
+      function renderGraph(visibleIds = visibleNodeIds) {
+        const svg = document.getElementById("graph");
+        svg.innerHTML = "";
+        nodeElements.clear();
+        edgeElements = [];
+        nodePositions.clear();
+        addSvgDefinitions(svg);
+        const visibleNodes = graphData.nodes.filter(node => !visibleIds || visibleIds.has(node.id));
+        if (visibleNodes.length === 0) {
+          return;
         }
-      );
-  
-    path.dataset.source =
-      edge.source;
-  
-    path.dataset.target =
-      edge.target;
-  
-    edgeElements.push({
-      edge,
-      element: path
-    });
-  
-    svg.appendChild(
-      path
-    );
-  }
-  
-  /*
-   * Nodes on top of all edges.
-   */
-  for (
-    let level = 0;
-    level <= maxLevel;
-    level++
-  ) {
-    for (
-      const node
-      of levels.get(level)
-    ) {
-      const position =
-        nodePositions.get(
-          node.id
-        );
-
-      const element =
-        renderNode(
-          node,
-          position
-        );
-
-      nodeElements.set(
-        node.id,
-        element
-      );
-
-      svg.appendChild(
-        element
-      );
-    }
-  }
-
-  /*
-   * Focus styling.
-   */
-  if (
-    currentFocusId
-    && nodeElements.has(
-      currentFocusId
-    )
-  ) {
-    for (
-      const [id, element]
-      of nodeElements
-    ) {
-      if (
-        id === currentFocusId
-      ) {
-        element.classList.add(
-          "selected"
-        );
-      }
-      else {
-        element.classList.add(
-          "related"
-        );
-      }
-    }
-  }
-}
-
-
-function renderColumnBackgrounds(
-  svg,
-  levels,
-  graphHeight,
-  maxLevel,
-  columnWidth
-) {
-  for (
-    let level = 0;
-    level <= maxLevel;
-    level++
-  ) {
-    const x =
-      COLUMN_PADDING
-      + level
-        * columnWidth;
-
-    const background =
-      svgElement(
-        "rect",
-        {
-          class:
-            "level-background",
-
-          x,
-          y: 12,
-
-          width:
-            columnWidth - 18,
-
-          height:
-            graphHeight - 24,
-
-          rx: 10
+        const visibleEdges = graphData.edges.filter(edge => !visibleIds || (visibleIds.has(edge.source) && visibleIds.has(edge.target)));
+        const maxLevel = Math.max(...visibleNodes.map(node => node.level));
+        const levels = new Map();
+        for (let level = 0; level <= maxLevel; level++) {
+          levels.set(level,
+            []);
         }
-      );
-
-    svg.appendChild(
-      background
-    );
-
-    const title =
-      svgElement(
-        "text",
-        {
-          class:
-            "level-title",
-
-          x:
-            x + 14,
-
-          y:
-            35
+        for (const node of visibleNodes) {
+          levels.get(node.level).push(node);
         }
-      );
+        const rowHeight = getRowHeight();
+        const columnWidth = getColumnWidth();
+        const nodeWidth = getNodeWidth();
+        const nodeHeight = getNodeHeight();
+        orderLevels(levels, maxLevel, rowHeight);
+        /*
+         * We no longer reserve a huge corridor at the top.
+         *
+         * Long edges find local lanes around the nodes they actually
+         * need to skip.
+         */
+        const topPadding = BASE_TOP_PADDING;
+        const maximumNodes = Math.max(1, ...[...levels.values()].map(nodes => nodes.length));
+        const graphHeight = topPadding + maximumNodes * rowHeight + BOTTOM_PADDING;
+        const graphWidth = COLUMN_PADDING * 2 + (maxLevel + 1) * columnWidth;
+        svg.setAttribute("width", graphWidth);
+        svg.setAttribute("height", graphHeight);
+        svg.setAttribute("viewBox", `0 0 ${graphWidth} ${graphHeight}`);
+        /*
+         * Final node coordinates.
+         */
+        for (let level = 0; level <= maxLevel; level++) {
+          const nodes = levels.get(level);
+          const columnHeight = nodes.length * rowHeight;
+          const availableHeight = maximumNodes * rowHeight;
+          const offset = currentFocusId ? (availableHeight - columnHeight) / 2 : 0;
+          nodes.forEach(
+            (node, index) => {
+              const x = COLUMN_PADDING + level * columnWidth + columnWidth / 2;
+              const y = topPadding + offset + index * rowHeight + rowHeight / 2;
+              nodePositions.set(node.id, {
+                x,
+                y
+              });
+            });
+        }
+        const longEdgeRoutes = currentFocusId ? planLongEdgeRoutes(visibleEdges, levels, nodeWidth, nodeHeight, graphHeight) : new Map();
+        renderColumnBackgrounds(svg, levels, graphHeight, maxLevel, columnWidth);
+        /*
+         * Edges first, nodes second.
+         */
+        for (const edge of visibleEdges) {
+          const source = nodePositions.get(edge.source);
+          const target = nodePositions.get(edge.target);
+          if (!source || !target) {
+            continue;
+          }
+          const sourceNode = nodesById.get(edge.source);
+          const targetNode = nodesById.get(edge.target);
+          const isLong = Boolean(currentFocusId && sourceNode && targetNode && (targetNode.level - sourceNode.level) > 1);
+          let pathData;
+          if (isLong) {
+            const routeKey = `${edge.source}\u0000${edge.target}`;
+            const route = longEdgeRoutes.get(routeKey);
+            if (route) {
+              pathData = makeLongEdgePath(source, target, nodeWidth, route);
+            } else {
+              pathData = makeNormalEdgePath(source, target, nodeWidth);
+            }
+          } else {
+            pathData = makeNormalEdgePath(source, target, nodeWidth);
+          }
+          const classes = ["edge"];
+          if (currentFocusId) {
+            classes.push("active");
+          }
+          if (isLong) {
+            classes.push("long-edge");
+          }
+          const path = svgElement("path", {
+            class: classes.join(" "),
+            d: pathData,
+            "marker-end": "url(#arrowhead)"
+          });
+          path.dataset.source = edge.source;
+          path.dataset.target = edge.target;
+          edgeElements.push({
+            edge,
+            element: path
+          });
+          svg.appendChild(path);
+        }
+        /*
+         * Nodes on top of all edges.
+         */
+        for (let level = 0; level <= maxLevel; level++) {
+          for (const node of levels.get(level)) {
+            const position = nodePositions.get(node.id);
+            const element = renderNode(node, position);
+            nodeElements.set(node.id, element);
+            svg.appendChild(element);
+          }
+        }
+        /*
+         * Focus styling.
+         */
+        if (currentFocusId && nodeElements.has(currentFocusId)) {
+          for (const [id, element] of nodeElements) {
+            if (id === currentFocusId) {
+              element.classList.add("selected");
+            } else {
+              element.classList.add("related");
+            }
+          }
+        }
+      }
 
-    const count =
-      levels
-        .get(level)
-        .length;
-
-    title.textContent =
-      `Level ${level} · ${count}`;
-
-    svg.appendChild(
-      title
-    );
-  }
-}
-
-
-/* ================================================================
-   Node rendering
-   ================================================================ */
-
-function renderNode(
-  node,
-  position
-) {
-  const focusMode =
-    Boolean(
-      currentFocusId
-    );
-
-  const nodeWidth =
-    getNodeWidth();
-
-  const nodeHeight =
-    getNodeHeight();
-
-  const classes = [
-    "node"
-  ];
-
-  if (
-    node.target
-  ) {
-    classes.push(
-      "target"
-    );
-  }
-
-  /*
-   * A dashed border now means there are residual strokes,
-   * not that the node is necessarily atomic.
-   */
-  if (
-    node.decomposition_complete
-    === false
-  ) {
-    classes.push(
-      "incomplete"
-    );
-  }
-
-  if (
-    isComponentId(node)
-  ) {
-    classes.push(
-      "component-id"
-    );
-  }
-
-  const group =
-    svgElement(
-      "g",
-      {
-        class:
-          classes.join(" "),
-
-        transform:
-          `translate(${
+      function renderColumnBackgrounds(svg, levels, graphHeight, maxLevel, columnWidth) {
+        for (let level = 0; level <= maxLevel; level++) {
+          const x = COLUMN_PADDING + level * columnWidth;
+          const background = svgElement("rect", {
+            class: "level-background",
+            x,
+            y: 12,
+            width: columnWidth - 18,
+            height: graphHeight - 24,
+            rx: 10
+          });
+          svg.appendChild(background);
+          const title = svgElement("text", {
+            class: "level-title",
+            x: x + 14,
+            y: 35
+          });
+          const count = levels.get(level).length;
+          title.textContent = `Level ${level} · ${count}`;
+          svg.appendChild(title);
+        }
+      }
+      /* ================================================================
+         Node rendering
+         ================================================================ */
+      function renderNode(node, position) {
+        const focusMode = Boolean(currentFocusId);
+        const nodeWidth = getNodeWidth();
+        const nodeHeight = getNodeHeight();
+        const classes = ["node"];
+        if (node.target) {
+          classes.push("target");
+        }
+        /*
+         * A dashed border now means there are residual strokes,
+         * not that the node is necessarily atomic.
+         */
+        if (node.decomposition_complete === false) {
+          classes.push("incomplete");
+        }
+        if (isComponentId(node)) {
+          classes.push("component-id");
+        }
+        const group = svgElement("g", {
+          class: classes.join(" "),
+          transform: `translate(${
             position.x
           }, ${
             position.y
           })`
-      }
-    );
-
-  group.dataset.id =
-    node.id;
-
-  const rect =
-    svgElement(
-      "rect",
-      {
-        x:
-          -nodeWidth / 2,
-
-        y:
-          -nodeHeight / 2,
-
-        width:
-          nodeWidth,
-
-        height:
-          nodeHeight
-      }
-    );
-
-  group.appendChild(
-    rect
-  );
-
-  const textClasses = [
-    "kanji"
-  ];
-
-  if (
-    focusMode
-  ) {
-    textClasses.push(
-      "focus-kanji"
-    );
-  }
-
-  const text =
-    svgElement(
-      "text",
-      {
-        class:
-          textClasses.join(" "),
-
-        x: 0,
-
-        y:
-          focusMode
-            ? -13
-            : 1
-      }
-    );
-
-  text.textContent =
-    node.id;
-
-  group.appendChild(
-    text
-  );
-
-  /*
-   * Permanent meaning in focus mode.
-   *
-   * Overview remains compact.
-   */
-  if (
-    focusMode
-  ) {
-    const meanings =
-      node.jlpt?.meanings
-      ?? [];
-
-    const meaning =
-      meanings.length
-        ? meanings.join(", ")
-        : "—";
-
-    const foreignObject =
-      svgElement(
-        "foreignObject",
-        {
-          x:
-            -nodeWidth / 2
-            + 7,
-
-          y: 4,
-
-          width:
-            nodeWidth - 14,
-
-          height: 34
+        });
+        group.dataset.id = node.id;
+        const rect = svgElement("rect", {
+          x: -nodeWidth / 2,
+          y: -nodeHeight / 2,
+          width: nodeWidth,
+          height: nodeHeight
+        });
+        group.appendChild(rect);
+        const textClasses = ["kanji"];
+        if (focusMode) {
+          textClasses.push("focus-kanji");
         }
-      );
-
-    const div =
-      document.createElementNS(
-        XHTML_NS,
-        "div"
-      );
-
-    div.setAttribute(
-      "class",
-      "node-meaning"
-    );
-
-    div.textContent =
-      meaning;
-
-    foreignObject.appendChild(
-      div
-    );
-
-    group.appendChild(
-      foreignObject
-    );
-  }
-
-  if (
-    node.target
-    && node.jlpt_level
-  ) {
-    const jlpt =
-      svgElement(
-        "text",
-        {
-          class:
-            "jlpt-label",
-
-          x:
-            -nodeWidth / 2
-            + 6,
-
-          y:
-            -nodeHeight / 2
-            + 10
+        const text = svgElement("text", {
+          class: textClasses.join(" "),
+          x: 0,
+          y: focusMode ? -13 : 1
+        });
+        text.textContent = node.id;
+        group.appendChild(text);
+        /*
+         * Permanent meaning in focus mode.
+         *
+         * Overview remains compact.
+         */
+        if (focusMode) {
+          const meanings = node.jlpt?.meanings ?? [];
+          const meaning = meanings.length ? meanings.join(", ") : "—";
+          const foreignObject = svgElement("foreignObject", {
+            x: -nodeWidth / 2 + 7,
+            y: 4,
+            width: nodeWidth - 14,
+            height: 34
+          });
+          const div = document.createElementNS(XHTML_NS, "div");
+          div.setAttribute("class", "node-meaning");
+          div.textContent = meaning;
+          foreignObject.appendChild(div);
+          group.appendChild(foreignObject);
         }
-      );
-
-    jlpt.textContent =
-      node.jlpt_level;
-
-    group.appendChild(
-      jlpt
-    );
-  }
-
-  if (
-    node.variant_of
-    ?.length
-  ) {
-    const variant =
-      svgElement(
-        "text",
-        {
-          class:
-            "variant-label",
-
-          x:
-            nodeWidth / 2
-            - 5,
-
-          y:
-            -nodeHeight / 2
-            + 10,
-
-          "text-anchor":
-            "end"
+        if (node.target && node.jlpt_level) {
+          const jlpt = svgElement("text", {
+            class: "jlpt-label",
+            x: -nodeWidth / 2 + 6,
+            y: -nodeHeight / 2 + 10
+          });
+          jlpt.textContent = node.jlpt_level;
+          group.appendChild(jlpt);
         }
-      );
-
-    variant.textContent =
-      `← ${
+        if (node.variant_of?.length) {
+          const variant = svgElement("text", {
+            class: "variant-label",
+            x: nodeWidth / 2 - 5,
+            y: -nodeHeight / 2 + 10,
+            "text-anchor": "end"
+          });
+          variant.textContent = `← ${
         node.variant_of.join(",")
       }`;
-
-    group.appendChild(
-      variant
-    );
-  }
-
-  group.addEventListener(
-    "mouseenter",
-    event => {
-      showTooltip(
-        node,
-        event
-      );
-    }
-  );
-
-  group.addEventListener(
-    "mousemove",
-    moveTooltip
-  );
-
-  group.addEventListener(
-    "mouseleave",
-    hideTooltip
-  );
-
-  group.addEventListener(
-    "click",
-    () => {
-      focusNode(
-        node.id
-      );
-    }
-  );
-
-  return group;
-}
-
-
-/* ================================================================
-   Graph traversal
-   ================================================================ */
-
-function traverse(
-  start,
-  adjacency
-) {
-  const visited =
-    new Set();
-
-  const queue = [
-    start
-  ];
-
-  while (
-    queue.length
-  ) {
-    const current =
-      queue.shift();
-
-    for (
-      const next
-      of adjacency.get(
-        current
-      ) ?? []
-    ) {
-      if (
-        visited.has(next)
-      ) {
-        continue;
-      }
-
-      visited.add(next);
-      queue.push(next);
-    }
-  }
-
-  return visited;
-}
-
-
-/* ================================================================
-   Focus / Overview
-   ================================================================ */
-
-function focusNode(
-  id,
-  options = {}
-) {
-  const {
-    recordHistory = true,
-    restoreState = null
-  } = options;
-
-  const node =
-    nodesById.get(id);
-
-  if (!node) {
-    return;
-  }
-
-  hideTooltip();
-
-  if (
-    recordHistory
-    && currentFocusId !== id
-  ) {
-    pushCurrentViewToHistory();
-  }
-
-  const prerequisites =
-    traverse(
-      id,
-      incoming
-    );
-
-  const dependents =
-    traverse(
-      id,
-      outgoing
-    );
-
-  visibleNodeIds =
-    new Set([
-      id,
-      ...prerequisites,
-      ...dependents
-    ]);
-
-  currentFocusId =
-    id;
-
-  renderGraph(
-    visibleNodeIds
-  );
-
-  renderStats();
-
-  renderDetails(
-    node,
-    prerequisites,
-    dependents
-  );
-
-  setStatus(
-    `${visibleNodeIds.size} related nodes`
-  );
-
-  updateBackButton();
-
-  if (
-    restoreState
-  ) {
-    requestAnimationFrame(
-      () => {
-        document
-          .getElementById(
-            "graph-container"
-          )
-          .scrollTo({
-            left:
-              restoreState.scrollLeft,
-
-            top:
-              restoreState.scrollTop,
-
-            behavior: "auto"
-          });
-      }
-    );
-  }
-  else {
-    scrollNodeIntoView(id);
-  }
-}
-
-
-function showOverview(
-  options = {}
-) {
-  const {
-    recordHistory = true,
-    restoreState = null
-  } = options;
-
-  hideTooltip();
-
-  if (
-    recordHistory
-    && currentFocusId !== null
-  ) {
-    pushCurrentViewToHistory();
-  }
-
-  currentFocusId =
-    null;
-
-  visibleNodeIds =
-    null;
-
-  renderGraph();
-  renderStats();
-  renderEmptyDetails();
-
-  setStatus(
-    `${graphData.stats.node_count} nodes`
-  );
-
-  updateBackButton();
-
-  const container =
-    document.getElementById(
-      "graph-container"
-    );
-
-  if (
-    restoreState
-  ) {
-    requestAnimationFrame(
-      () => {
-        container.scrollTo({
-          left:
-            restoreState.scrollLeft,
-
-          top:
-            restoreState.scrollTop,
-
-          behavior: "auto"
+          group.appendChild(variant);
+        }
+        group.addEventListener("mouseenter", event => {
+          showTooltip(node, event);
         });
+        group.addEventListener("mousemove", moveTooltip);
+        group.addEventListener("mouseleave", hideTooltip);
+        group.addEventListener("click",
+          () => {
+            focusNode(node.id);
+          });
+        return group;
       }
-    );
-  }
-  else {
-    container.scrollTo({
-      left: 0,
-      top: 0,
+      /* ================================================================
+         Graph traversal
+         ================================================================ */
+      function traverse(start, adjacency) {
+        const visited = new Set();
+        const queue = [
+          start
+        ];
+        while (queue.length) {
+          const current = queue.shift();
+          for (const next of adjacency.get(current) ?? []) {
+            if (visited.has(next)) {
+              continue;
+            }
+            visited.add(next);
+            queue.push(next);
+          }
+        }
+        return visited;
+      }
+      /* ================================================================
+         Focus / Overview
+         ================================================================ */
+      function focusNode(id, options = {}) {
+        const {
+          recordHistory = true,
+            restoreState = null
+        } = options;
+        const node = nodesById.get(id);
+        if (!node) {
+          return;
+        }
+        hideTooltip();
+        if (recordHistory && currentFocusId !== id) {
+          pushCurrentViewToHistory();
+        }
+        const prerequisites = traverse(id, incoming);
+        const dependents = traverse(id, outgoing);
+        visibleNodeIds = new Set([
+          id, ...prerequisites, ...dependents
+        ]);
+        currentFocusId = id;
+        renderGraph(visibleNodeIds);
+        renderStats();
+        renderDetails(node, prerequisites, dependents);
+        setStatus(`${visibleNodeIds.size} related nodes`);
+        updateBackButton();
+        if (restoreState) {
+          requestAnimationFrame(
+            () => {
+              document.getElementById("graph-container").scrollTo({
+                left: restoreState.scrollLeft,
+                top: restoreState.scrollTop,
+                behavior: "auto"
+              });
+            });
+        } else {
+          scrollNodeIntoView(id);
+        }
+      }
 
-      behavior:
-        "smooth"
-    });
-  }
-}
-
-
-/* ================================================================
-   Details
-   ================================================================ */
-
-function renderEmptyDetails() {
-  document
-    .getElementById(
-      "details"
-    )
-    .innerHTML = `
-      <p class="hint">
+      function showOverview(options = {}) {
+        const {
+          recordHistory = true,
+            restoreState = null
+        } = options;
+        hideTooltip();
+        if (recordHistory && currentFocusId !== null) {
+          pushCurrentViewToHistory();
+        }
+        currentFocusId = null;
+        visibleNodeIds = null;
+        renderGraph();
+        renderStats();
+        renderEmptyDetails();
+        setStatus(`${graphData.stats.node_count} nodes`);
+        updateBackButton();
+        const container = document.getElementById("graph-container");
+        if (restoreState) {
+          requestAnimationFrame(
+            () => {
+              container.scrollTo({
+                left: restoreState.scrollLeft,
+                top: restoreState.scrollTop,
+                behavior: "auto"
+              });
+            });
+        } else {
+          container.scrollTo({
+            left: 0,
+            top: 0,
+            behavior: "smooth"
+          });
+        }
+      }
+      /* ================================================================
+         Details
+         ================================================================ */
+      function renderEmptyDetails() {
+        document.getElementById("details").innerHTML = `
+      
+	<p class="hint">
         Overview mode shows the entire selected JLPT graph.
         Click or search for a kanji to enter focus mode.
       </p>
     `;
-}
+      }
 
-
-function renderDetails(
-  node,
-  prerequisites,
-  dependents
-) {
-  const jlpt =
-    node.jlpt;
-
-  const meanings =
-    jlpt?.meanings ?? [];
-
-  const onyomi =
-    jlpt?.onyomi ?? [];
-
-  const kunyomi =
-    jlpt?.kunyomi ?? [];
-
-  const raw =
-    node.raw_prerequisites
-    ?? [];
-
-  const actual =
-    node.prerequisites
-    ?? [];
-
-  const displayClass =
-    isComponentId(node)
-      ? "detail-kanji component-id"
-      : "detail-kanji";
-
-  let html = `
-    <div class="${displayClass}">
+      function renderDetails(node, prerequisites, dependents) {
+        const jlpt = node.jlpt;
+        const meanings = jlpt?.meanings ?? [];
+        const onyomi = jlpt?.onyomi ?? [];
+        const kunyomi = jlpt?.kunyomi ?? [];
+        const raw = node.raw_prerequisites ?? [];
+        const actual = node.prerequisites ?? [];
+        const displayClass = isComponentId(node) ? "detail-kanji component-id" : "detail-kanji";
+        let html = `
+    
+	<div class="${displayClass}">
       ${escapeHtml(node.id)}
     </div>
-
-    <div>
+	<div>
       Learning level
-      <strong>
+      
+		<strong>
         ${node.level}
       </strong>
 
@@ -3752,29 +1778,25 @@ function renderDetails(
             } target`
           : ""
       }
-    </div>
+    
+	</div>
   `;
-
-  if (
-    isComponentId(node)
-  ) {
-    html += `
-      <div class="warning">
+        if (isComponentId(node)) {
+          html += `
+      
+	<div class="warning">
         This is an external component identifier rather
         than a standalone Unicode character.
       </div>
     `;
-  }
-
-  if (
-    meanings.length
-  ) {
-    html += `
-      <div class="detail-title">
+        }
+        if (meanings.length) {
+          html += `
+      
+	<div class="detail-title">
         Meaning
       </div>
-
-      <div>
+	<div>
         ${
           meanings
             .map(
@@ -3784,134 +1806,116 @@ function renderDetails(
         }
       </div>
     `;
-  }
-
-  if (
-    onyomi.length
-  ) {
-    html += `
-      <div class="detail-title">
+        }
+        if (onyomi.length) {
+          html += `
+      
+	<div class="detail-title">
         On'yomi
       </div>
-
-      <div class="chips">
+	<div class="chips">
         ${
           onyomi
             .map(
               value => `
-                <span class="chip">
+                
+		<span class="chip">
                   ${escapeHtml(value)}
                 </span>
               `
             )
             .join("")
         }
-      </div>
+      
+	</div>
     `;
-  }
-
-  if (
-    kunyomi.length
-  ) {
-    html += `
-      <div class="detail-title">
+        }
+        if (kunyomi.length) {
+          html += `
+      
+	<div class="detail-title">
         Kun'yomi
       </div>
-
-      <div class="chips">
+	<div class="chips">
         ${
           kunyomi
             .map(
               value => `
-                <span class="chip">
+                
+		<span class="chip">
                   ${escapeHtml(value)}
                 </span>
               `
             )
             .join("")
         }
-      </div>
+      
+	</div>
     `;
-  }
-
-  html += `
-    <div class="detail-title">
+        }
+        html += `
+    
+	<div class="detail-title">
       Direct learning prerequisites
     </div>
-
-    <div class="chips">
+	<div class="chips">
   `;
-
-  if (
-    actual.length
-  ) {
-    html +=
-      actual
-        .map(
-          value => `
-            <span
+        if (actual.length) {
+          html += actual.map(value => `
+            
+		<span
               class="chip clickable"
               data-focus-node="${escapeHtml(value)}"
             >
               ${escapeHtml(value)}
             </span>
-          `
-        )
-        .join("");
-  }
-  else {
-    html += `
-      <span class="subtle">
+          `).join("");
+        } else {
+          html += `
+      
+		<span class="subtle">
         None — atomic at present
       </span>
     `;
-  }
-
-  html += `
-    </div>
+        }
+        html += `
+    
+	</div>
   `;
-
-  if (
-    node.variant_of
-    ?.length
-  ) {
-    html += `
-      <div class="detail-title">
+        if (node.variant_of?.length) {
+          html += `
+      
+	<div class="detail-title">
         Variant of
       </div>
-
-      <div class="chips">
+	<div class="chips">
         ${
           node.variant_of
             .map(
               value => `
-                <span class="chip">
+                
+		<span class="chip">
                   ${escapeHtml(value)}
                 </span>
               `
             )
             .join("")
         }
-      </div>
+      
+	</div>
     `;
-  }
-
-  if (
-    node.decomposition_complete
-    === false
-  ) {
-    html += `
-      <div class="warning">
-        <strong>
+        }
+        if (node.decomposition_complete === false) {
+          html += `
+      
+	<div class="warning">
+		<strong>
           KanjiVG contains residual strokes
         </strong>
-        <br>
+		<br>
     `;
-
-    if (
-      raw.length
-    ) {
-      html += `
+          if (raw.length) {
+            html += `
         Named subcomponents:
         ${
           raw
@@ -3920,52 +1924,46 @@ function renderDetails(
             )
             .join(", ")
         }
-        <br>
+        
+			<br>
       `;
-    }
-
-    html += `
+          }
+          html += `
         Residual strokes:
         ${
           node.residual_stroke_count
           ?? 0
         }
-      </div>
+      
+			</div>
     `;
-  }
-
-  if (
-    node.leaf_reason
-    === "missing_kanjivg"
-  ) {
-    html += `
-      <div class="warning">
+        }
+        if (node.leaf_reason === "missing_kanjivg") {
+          html += `
+      
+			<div class="warning">
         No standalone KanjiVG SVG exists for this
         component, so it is currently treated as
         an atomic leaf.
       </div>
     `;
-  }
-
-  if (
-    node.leaf_reason
-    === "external_component_id"
-  ) {
-    html += `
-      <div class="warning">
+        }
+        if (node.leaf_reason === "external_component_id") {
+          html += `
+      
+			<div class="warning">
         KanjiVG identifies this component using an
         external component ID. It is currently an
         atomic leaf.
       </div>
     `;
-  }
-
-  html += `
-    <div class="detail-title">
+        }
+        html += `
+    
+			<div class="detail-title">
       Focus graph
     </div>
-
-    <div>
+			<div>
       ${prerequisites.size}
       prerequisite ancestor${
         prerequisites.size === 1
@@ -3982,530 +1980,243 @@ function renderDetails(
           : "s"
       }
     </div>
-
-    <div class="detail-title">
+			<div class="detail-title">
       Strokes
     </div>
-
-    <div>
+			<div>
       ${
         node.stroke_count
         ?? "unknown"
       }
     </div>
   `;
-
-  const details =
-    document.getElementById(
-      "details"
-    );
-
-  details.innerHTML =
-    html;
-
-  for (
-    const chip
-    of details.querySelectorAll(
-      "[data-focus-node]"
-    )
-  ) {
-    chip.addEventListener(
-      "click",
-      () => {
-        focusNode(
-          chip.dataset.focusNode
-        );
+        const details = document.getElementById("details");
+        details.innerHTML = html;
+        for (const chip of details.querySelectorAll("[data-focus-node]")) {
+          chip.addEventListener("click",
+            () => {
+              focusNode(chip.dataset.focusNode);
+            });
+        }
       }
-    );
-  }
-}
-
-
-/* ================================================================
-   Hover tooltip
-   ================================================================ */
-
-function showTooltip(
-  node,
-  event
-) {
-  const tooltip =
-    document.getElementById(
-      "tooltip"
-    );
-
-  const meanings =
-    node.jlpt?.meanings
-    ?? [];
-
-  const meaningText =
-    meanings.length
-      ? meanings.join(", ")
-      : "No meaning metadata";
-
-  tooltip.innerHTML = `
-    <div>
-      <span class="tooltip-kanji">
+      /* ================================================================
+         Hover tooltip
+         ================================================================ */
+      function showTooltip(node, event) {
+        const tooltip = document.getElementById("tooltip");
+        const meanings = node.jlpt?.meanings ?? [];
+        const meaningText = meanings.length ? meanings.join(", ") : "No meaning metadata";
+        tooltip.innerHTML = `
+    
+			<div>
+				<span class="tooltip-kanji">
         ${escapeHtml(node.id)}
       </span>
 
       ${
         node.jlpt_level
           ? `
-            <span class="tooltip-level">
+            
+				<span class="tooltip-level">
               ${escapeHtml(node.jlpt_level)}
             </span>
           `
           : ""
       }
-    </div>
-
-    <div>
+    
+			</div>
+			<div>
       ${escapeHtml(meaningText)}
     </div>
   `;
+        tooltip.classList.add("visible");
+        moveTooltip(event);
+      }
 
-  tooltip.classList.add(
-    "visible"
-  );
+      function moveTooltip(event) {
+        const tooltip = document.getElementById("tooltip");
+        if (!tooltip.classList.contains("visible")) {
+          return;
+        }
+        const padding = 14;
+        let x = event.clientX + 12;
+        let y = event.clientY + 12;
+        const rect = tooltip.getBoundingClientRect();
+        if (x + rect.width + padding > window.innerWidth) {
+          x = event.clientX - rect.width - 12;
+        }
+        if (y + rect.height + padding > window.innerHeight) {
+          y = event.clientY - rect.height - 12;
+        }
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+      }
 
-  moveTooltip(event);
-}
-
-
-function moveTooltip(event) {
-  const tooltip =
-    document.getElementById(
-      "tooltip"
-    );
-
-  if (
-    !tooltip.classList.contains(
-      "visible"
-    )
-  ) {
-    return;
-  }
-
-  const padding = 14;
-
-  let x =
-    event.clientX + 12;
-
-  let y =
-    event.clientY + 12;
-
-  const rect =
-    tooltip.getBoundingClientRect();
-
-  if (
-    x
-      + rect.width
-      + padding
-    > window.innerWidth
-  ) {
-    x =
-      event.clientX
-      - rect.width
-      - 12;
-  }
-
-  if (
-    y
-      + rect.height
-      + padding
-    > window.innerHeight
-  ) {
-    y =
-      event.clientY
-      - rect.height
-      - 12;
-  }
-
-  tooltip.style.left =
-    `${x}px`;
-
-  tooltip.style.top =
-    `${y}px`;
-}
-
-
-function hideTooltip() {
-  document
-    .getElementById(
-      "tooltip"
-    )
-    .classList.remove(
-      "visible"
-    );
-}
-
-
-/* ================================================================
-   Scrolling
-   ================================================================ */
-
-function scrollNodeIntoView(id) {
-  const position =
-    nodePositions.get(id);
-
-  if (
-    !position
-  ) {
-    return;
-  }
-
-  const container =
-    document.getElementById(
-      "graph-container"
-    );
-
-  container.scrollTo({
-    left:
-      Math.max(
-        0,
-        position.x
-          - container.clientWidth
-            / 2
-      ),
-
-    top:
-      Math.max(
-        0,
-        position.y
-          - container.clientHeight
-            / 2
-      ),
-
-    behavior:
-      "smooth"
-  });
-}
-
-
-/* ================================================================
-   Search
-   ================================================================ */
-
-function search() {
-  if (!graphData) {
-    return;
-  }
-
-  const rawQuery =
-    document
-      .getElementById("search")
-      .value
-      .trim();
-
-  if (!rawQuery) {
-    return;
-  }
-
-  const query =
-    rawQuery.toLowerCase();
-
-  let bestMatch = null;
-  let bestScore = -1;
-
-  for (const node of graphData.nodes) {
-    const id =
-      node.id.toLowerCase();
-
-    const meanings =
-      node.jlpt?.meanings ?? [];
-
-    const onyomi =
-      node.jlpt?.onyomi ?? [];
-
-    const kunyomi =
-      node.jlpt?.kunyomi ?? [];
-
-    const readings = [
-      ...onyomi,
-      ...kunyomi
-    ];
-
-    let score = -1;
-
-    /*
-     * Exact kanji / component ID.
-     */
-    if (id === query) {
-      score = 1000;
-    }
-
-    /*
-     * Exact meaning.
-     *
-     * Earlier meanings rank higher:
-     *
-     * ["sea", "ocean"]
-     *  -> "sea" gets 900
-     *
-     * ["ocean", "sea"]
-     *  -> "sea" gets 890
-     */
-    const exactMeaningIndex =
-      meanings.findIndex(
-        meaning =>
-          meaning.toLowerCase() === query
-      );
-
-    if (exactMeaningIndex !== -1) {
-      score = Math.max(
-        score,
-        900 - exactMeaningIndex * 10
-      );
-    }
-
-    /*
-     * Exact reading.
-     */
-    const exactReadingIndex =
-      readings.findIndex(
-        reading =>
-          reading.toLowerCase() === query
-      );
-
-    if (exactReadingIndex !== -1) {
-      score = Math.max(
-        score,
-        850 - exactReadingIndex
-      );
-    }
-
-    /*
-     * Meaning starts with the query.
-     *
-     * Earlier meanings again rank higher.
-     */
-    const prefixMeaningIndex =
-      meanings.findIndex(
-        meaning =>
-          meaning
-            .toLowerCase()
-            .startsWith(query)
-      );
-
-    if (prefixMeaningIndex !== -1) {
-      score = Math.max(
-        score,
-        700 - prefixMeaningIndex * 10
-      );
-    }
-
-    /*
-     * Reading starts with the query.
-     */
-    const prefixReadingIndex =
-      readings.findIndex(
-        reading =>
-          reading
-            .toLowerCase()
-            .startsWith(query)
-      );
-
-    if (prefixReadingIndex !== -1) {
-      score = Math.max(
-        score,
-        650 - prefixReadingIndex
-      );
-    }
-
-    /*
-     * Whole-word match inside a meaning.
-     *
-     * For example "inn" matches a meaning containing
-     * "small inn", but does not treat the "inn" inside
-     * "beginning" as a whole-word match.
-     */
-    const wholeWordMeaningIndex =
-      meanings.findIndex(
-        meaning =>
-          meaning
-            .toLowerCase()
-            .split(/[^a-z0-9]+/)
-            .includes(query)
-      );
-
-    if (wholeWordMeaningIndex !== -1) {
-      score = Math.max(
-        score,
-        500 - wholeWordMeaningIndex * 10
-      );
-    }
-
-    /*
-     * Generic substring fallback.
-     *
-     * This is intentionally low priority.
-     */
-    const substringMeaningIndex =
-      meanings.findIndex(
-        meaning =>
-          meaning
-            .toLowerCase()
-            .includes(query)
-      );
-
-    if (substringMeaningIndex !== -1) {
-      score = Math.max(
-        score,
-        100 - substringMeaningIndex
-      );
-    }
-
-    /*
-     * Keep the highest-scoring node.
-     */
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = node;
-    }
-  }
-
-  if (bestMatch) {
-    focusNode(
-      bestMatch.id
-    );
-
-    setStatus(
-      `Found ${bestMatch.id}`
-    );
-
-    return;
-  }
-
-  setStatus(
-    `No match for “${rawQuery}”`
-  );
-}
-
-/* ================================================================
-   Error handling
-   ================================================================ */
-
-function showLoadError(error) {
-  console.error(error);
-
-  setStatus(
-    "Error"
-  );
-
-  setLevelButtonsDisabled(
-    false
-  );
-
-  document
-    .getElementById(
-      "details"
-    )
-    .innerHTML = `
-      <div class="warning">
+      function hideTooltip() {
+        document.getElementById("tooltip").classList.remove("visible");
+      }
+      /* ================================================================
+         Scrolling
+         ================================================================ */
+      function scrollNodeIntoView(id) {
+        const position = nodePositions.get(id);
+        if (!position) {
+          return;
+        }
+        const container = document.getElementById("graph-container");
+        container.scrollTo({
+          left: Math.max(0, position.x - container.clientWidth / 2),
+          top: Math.max(0, position.y - container.clientHeight / 2),
+          behavior: "smooth"
+        });
+      }
+      /* ================================================================
+         Search
+         ================================================================ */
+      function search() {
+        if (!graphData) {
+          return;
+        }
+        const rawQuery = document.getElementById("search").value.trim();
+        if (!rawQuery) {
+          return;
+        }
+        const query = rawQuery.toLowerCase();
+        let bestMatch = null;
+        let bestScore = -1;
+        for (const node of graphData.nodes) {
+          const id = node.id.toLowerCase();
+          const meanings = node.jlpt?.meanings ?? [];
+          const onyomi = node.jlpt?.onyomi ?? [];
+          const kunyomi = node.jlpt?.kunyomi ?? [];
+          const readings = [...onyomi, ...kunyomi];
+          let score = -1;
+          /*
+           * Exact kanji / component ID.
+           */
+          if (id === query) {
+            score = 1000;
+          }
+          /*
+           * Exact meaning.
+           *
+           * Earlier meanings rank higher:
+           *
+           * ["sea", "ocean"]
+           *  -> "sea" gets 900
+           *
+           * ["ocean", "sea"]
+           *  -> "sea" gets 890
+           */
+          const exactMeaningIndex = meanings.findIndex(meaning => meaning.toLowerCase() === query);
+          if (exactMeaningIndex !== -1) {
+            score = Math.max(score, 900 - exactMeaningIndex * 10);
+          }
+          /*
+           * Exact reading.
+           */
+          const exactReadingIndex = readings.findIndex(reading => reading.toLowerCase() === query);
+          if (exactReadingIndex !== -1) {
+            score = Math.max(score, 850 - exactReadingIndex);
+          }
+          /*
+           * Meaning starts with the query.
+           *
+           * Earlier meanings again rank higher.
+           */
+          const prefixMeaningIndex = meanings.findIndex(meaning => meaning.toLowerCase().startsWith(query));
+          if (prefixMeaningIndex !== -1) {
+            score = Math.max(score, 700 - prefixMeaningIndex * 10);
+          }
+          /*
+           * Reading starts with the query.
+           */
+          const prefixReadingIndex = readings.findIndex(reading => reading.toLowerCase().startsWith(query));
+          if (prefixReadingIndex !== -1) {
+            score = Math.max(score, 650 - prefixReadingIndex);
+          }
+          /*
+           * Whole-word match inside a meaning.
+           *
+           * For example "inn" matches a meaning containing
+           * "small inn", but does not treat the "inn" inside
+           * "beginning" as a whole-word match.
+           */
+          const wholeWordMeaningIndex = meanings.findIndex(meaning => meaning.toLowerCase().split(/[^a-z0-9]+/).includes(query));
+          if (wholeWordMeaningIndex !== -1) {
+            score = Math.max(score, 500 - wholeWordMeaningIndex * 10);
+          }
+          /*
+           * Generic substring fallback.
+           *
+           * This is intentionally low priority.
+           */
+          const substringMeaningIndex = meanings.findIndex(meaning => meaning.toLowerCase().includes(query));
+          if (substringMeaningIndex !== -1) {
+            score = Math.max(score, 100 - substringMeaningIndex);
+          }
+          /*
+           * Keep the highest-scoring node.
+           */
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = node;
+          }
+        }
+        if (bestMatch) {
+          focusNode(bestMatch.id);
+          setStatus(`Found ${bestMatch.id}`);
+          return;
+        }
+        setStatus(`No match for “${rawQuery}”`);
+      }
+      /* ================================================================
+         Error handling
+         ================================================================ */
+      function showLoadError(error) {
+        console.error(error);
+        setStatus("Error");
+        setLevelButtonsDisabled(false);
+        document.getElementById("details").innerHTML = `
+      
+			<div class="warning">
         Failed to load graph:
         ${escapeHtml(error.message)}
       </div>
     `;
-}
-
-
-/* ================================================================
-   Events
-   ================================================================ */
-
-document
-  .getElementById(
-    "back-button"
-  )
-  .addEventListener(
-    "click",
-    goBack
-  );
-
-
-document
-  .getElementById(
-    "overview-button"
-  )
-  .addEventListener(
-    "click",
-    () => {
-      showOverview();
-    }
-  );
-
-
-document
-  .getElementById(
-    "search-button"
-  )
-  .addEventListener(
-    "click",
-    search
-  );
-
-
-document
-  .getElementById(
-    "search"
-  )
-  .addEventListener(
-    "keydown",
-    event => {
-      if (
-        event.key
-        === "Enter"
-      ) {
-        search();
       }
-    }
-  );
-
-
-for (
-  const button
-  of document.querySelectorAll(
-    ".level-button"
-  )
-) {
-  button.addEventListener(
-    "click",
-    () => {
-      const level =
-        button.dataset.level;
-
-      if (
-        level
-        === selectedJlptLevel
-      ) {
-        return;
+      /* ================================================================
+         Events
+         ================================================================ */
+      document.getElementById("back-button").addEventListener("click", goBack);
+      document.getElementById("overview-button").addEventListener("click",
+        () => {
+          showOverview();
+        });
+      document.getElementById("search-button").addEventListener("click", search);
+      document.getElementById("search").addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          search();
+        }
+      });
+      for (const button of document.querySelectorAll(".level-button")) {
+        button.addEventListener("click",
+          () => {
+            const level = button.dataset.level;
+            if (level === selectedJlptLevel) {
+              return;
+            }
+            selectedJlptLevel = level;
+            syncLevelButtons();
+            applySelectedLevel();
+          });
       }
-
-      selectedJlptLevel =
-        level;
-      
+      /* ================================================================
+         Start
+         ================================================================ */
       syncLevelButtons();
-      
-      applySelectedLevel();
-    }
-  );
-}
-
-/* ================================================================
-   Start
-   ================================================================ */
-
-syncLevelButtons();
-
-updateBackButton();
-
-loadGraph()
-  .catch(
-    showLoadError
-  );
-
-</script>
-
-</body>
+      updateBackButton();
+      loadGraph().catch(showLoadError);
+    </script>
+  </body>
 </html>
