@@ -644,7 +644,7 @@ async function loadGraph() {
   setStatus("Loading…");
 
   const response = await fetch(
-    `graph-${selectedLevel.toLowerCase()}.json`
+    `static-data/graph-${selectedLevel.toLowerCase()}.json`
   );
 
   if (!response.ok) {
